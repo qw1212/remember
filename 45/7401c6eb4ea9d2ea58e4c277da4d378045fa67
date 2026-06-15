@@ -1,0 +1,18 @@
+README_CN.md
+  h_799a224d9b007d 23,27,29,38-44,60,71,76,78,81,84,86,94-96,98-104,106,108,116,134,166,168-194,199
+plan.md
+  h_799a224d9b007d 269-326
+README.md
+  h_799a224d9b007d 27,29,35,38-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "457401c6eb4ea9d2ea58e4c277da4d378045fa67",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
