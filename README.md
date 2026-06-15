@@ -75,11 +75,11 @@ Our lives are made up of countless pieces of information: account passwords, hab
 ### Expansion Possibilities
 The project can grow thoughtfully in these directions:
 - **Family sharing** – Secure password sharing and family memory vaults
-- **AI assistance** – Smart organization, backup reminders, and data insights (while maintaining privacy)
 - **Time capsules** – Content that unlocks at predetermined future dates
 - **Biometric integration** – Fingerprint and facial recognition for enhanced security
 - **Secure sync** – Cross-device access with privacy preservation
 - **Legal integration** – Working with digital estate planning services
+- **Selective AI integration** – Users choose which data to share with AI (e.g., habits, knowledge) while keeping sensitive data (passwords, private notes) encrypted and hidden. Supports custom AI APIs for full control.
 
 ### Clear Boundaries
 To maintain its core principles, **remember** will never include:
@@ -88,6 +88,5 @@ To maintain its core principles, **remember** will never include:
 - ❌ **Cloud dependency** – Avoiding becoming another data collection platform
 - ❌ **Enterprise complexity** – Keeping personal use simple and focused
 - ❌ **Unnecessary complexity** – No blockchain, cryptocurrency, or over-engineered solutions
-- ❌ **AI automation** – Maintaining user control over all data decisions
 
 > **remember** is your digital sanctuary—private, secure, and entirely yours.
