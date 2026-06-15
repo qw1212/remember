@@ -1,0 +1,16 @@
+README_CN.md
+  h_799a224d9b007d 82
+README.md
+  h_799a224d9b007d 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "8deb3800bf41e2dfbc58fb5563b04ef15e99a262",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
