@@ -77,16 +77,65 @@ The project can grow thoughtfully in these directions:
 - **Family sharing** – Secure password sharing and family memory vaults
 - **Time capsules** – Content that unlocks at predetermined future dates
 - **Biometric integration** – Fingerprint and facial recognition for enhanced security
-- **Secure sync** – Cross-device access with privacy preservation
+- **Multi-device sync** – Cross-device access with encryption preservation
 - **Legal integration** – Working with digital estate planning services
 - **Selective AI integration** – Users choose which data to share with AI (e.g., habits, knowledge) while keeping sensitive data (passwords, private notes) encrypted and hidden. Supports custom AI APIs for full control.
 
 ### Clear Boundaries
 To maintain its core principles, **remember** will never include:
-- ❌ **Social features** – This is a private vault, not a social network
+- ❌ **Social network features** – Limited sharing (family passwords) is supported, but this is not a social platform
 - ❌ **Data monetization** – No ads, no analytics sales, no third-party data sharing
-- ❌ **Cloud dependency** – Avoiding becoming another data collection platform
-- ❌ **Enterprise complexity** – Keeping personal use simple and focused
+- ❌ **Mandatory cloud dependency** – Local-first with optional encrypted cloud backup
 - ❌ **Unnecessary complexity** – No blockchain, cryptocurrency, or over-engineered solutions
 
 > **remember** is your digital sanctuary—private, secure, and entirely yours.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Svelte + TypeScript
+- **Build Tool**: Vite
+- **Local Database**: SQLite (via sql.js WebAssembly)
+- **Encryption**: Web Crypto API (AES-256-GCM)
+- **UI**: Tailwind CSS
+- **Deployment**: Static hosting (Vercel/Netlify) – **completely free**
+
+---
+
+## 🚀 Implementation Roadmap
+
+### Phase 1: MVP (4-6 weeks)
+**Core Features:**
+- User authentication with master password
+- Digital credentials management (CRUD)
+- AES-256-GCM encryption for sensitive data
+- Local SQLite database
+- Basic search and categorization
+- Encrypted export/import
+
+**Deployment:** Static hosting – zero cost
+
+### Phase 2: Feature Expansion (4-6 weeks)
+- Habit tracker
+- Knowledge base
+- Thought journal
+- Dream list
+
+### Phase 3: Advanced Features (4-6 weeks)
+- Digital legacy management
+- Asset tracking
+- Experience repository
+- Advanced search and tagging
+
+### Phase 4: Platform Expansion (6-8 weeks)
+- Desktop app (Electron/Tauri)
+- Mobile app (React Native/Flutter)
+- Optional encrypted cloud backup
+
+---
+
+## 📖 Documentation
+
+- [README_CN.md](./README_CN.md) – 中文文档
+- [plan.md](./plan.md) – Detailed implementation plan
