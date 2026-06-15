@@ -92,90 +92,93 @@
 
 ### 技术栈选择
 
-**前端框架：Svelte + TypeScript**
-- 轻量级，高性能
-- 编译时优化， bundle 体积小
-- 优秀的开发体验
+**前端框架：React + TypeScript**
+- 生态成熟，社区庞大
+- 组件库丰富（shadcn/ui、Ant Design）
+- 对新手开发者友好
+- Vite提供快速开发体验
 
 **构建工具：Vite**
 - 快速热重载
 - 优化的生产构建
 - 原生 ES 模块支持
 
-**本地数据库：sql.js (SQLite WebAssembly)**
-- 浏览器中运行 SQLite
-- 完整的 SQL 支持
-- 数据文件可导出
+**本地数据库：IndexedDB + Dexie.js**
+- 浏览器原生，无需加载额外资源
+- 性能好，支持大量数据
+- Dexie.js提供简洁的API
+- 支持加密插件
 
 **加密：Web Crypto API**
 - 浏览器原生加密 API
 - AES-256-GCM 支持
 - 安全密钥管理
+- 封装成简洁的工具类
 
-**UI 框架：Tailwind CSS**
+**UI 框架：Tailwind CSS + shadcn/ui**
 - 实用优先的 CSS 框架
-- 快速 UI 开发
-- 响应式设计
+- 现代设计，高度可定制
+- 组件质量高，可访问性好
+- bundle小，性能好
 
-**状态管理：Svelte stores**
-- 内置状态管理
-- 简单易用
-- 响应式更新
+**状态管理：React Context + Zustand**
+- React内置状态管理
+- Zustand提供全局状态
+- 简单易用，性能好
+
+**后端：第一阶段无需后端**
+- 数据完全本地化
+- 使用静态托管（Vercel/Netlify）
+- 后续阶段可选云备份
 
 ## 数据库设计
 
-### 本地 SQLite 数据库结构
+### 本地 IndexedDB 数据库结构（使用 Dexie.js）
 
-```sql
--- 用户主表
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
-    username TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    salt TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+```typescript
+// src/lib/database.ts
+import Dexie from 'dexie';
 
--- 密码条目表
-CREATE TABLE credentials (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    title TEXT NOT NULL,
-    username TEXT,
-    password_encrypted TEXT NOT NULL,
-    url TEXT,
-    category TEXT,
-    notes_encrypted TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
+export interface Credential {
+    id?: number;
+    title: string;
+    username?: string;
+    password: string; // 加密存储
+    url?: string;
+    category?: string;
+    notes?: string; // 加密存储
+    tags: string[];
+    createdAt: Date;
+    updatedAt: Date;
+}
 
--- 分类表
-CREATE TABLE categories (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    name TEXT NOT NULL,
-    icon TEXT,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
+export interface Category {
+    id?: number;
+    name: string;
+    icon?: string;
+}
 
--- 标签表
-CREATE TABLE tags (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    name TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
+export interface Tag {
+    id?: number;
+    name: string;
+}
 
--- 条目标签关联表
-CREATE TABLE credential_tags (
-    credential_id INTEGER,
-    tag_id INTEGER,
-    PRIMARY KEY (credential_id, tag_id),
-    FOREIGN KEY (credential_id) REFERENCES credentials(id),
-    FOREIGN KEY (tag_id) REFERENCES tags(id)
-);
+export class RememberDatabase extends Dexie {
+    credentials!: Dexie.Table<Credential, number>;
+    categories!: Dexie.Table<Category, number>;
+    tags!: Dexie.Table<Tag, number>;
+
+    constructor() {
+        super('remember-db');
+        this.version(1).stores({
+            credentials: '++id, title, username, url, category, *tags, createdAt, updatedAt',
+            categories: '++id, name',
+            tags: '++id, name'
+        });
+    }
+}
+
+export const db = new RememberDatabase();
 ```
 
 ### 数据加密方案
@@ -263,27 +266,109 @@ CREATE TABLE credential_tags (
 - 移动应用（React Native/Flutter）
 - 可选云备份功能
 
+### 第五阶段：个人数字档案系统（10-12周）
+
+**核心理念转变：**
+从"个人数据保险库"升级为"全面的个人数字档案库"
+
+**技术可行性说明：**
+本阶段功能分为可实现和需要技术突破两类，将在文档中明确标注。
+
+**新增功能模块：**
+
+#### 1. 人格建模系统 ✓ 可实现
+- **性格特征**：MBTI、大五人格、价值观体系
+- **思维方式**：决策模式、逻辑推理习惯、思维偏好
+- **情感模式**：情绪反应、情感触发点、应对机制
+- **语言风格**：常用词汇、表达习惯、语气特征
+- **幽默感**：笑话偏好、讽刺程度、幽默风格
+
+#### 2. 关系网络系统 ✓ 可实现
+- **人际关系图谱**：与每个人的关系、互动历史
+- **社交模式**：社交偏好、沟通风格
+- **情感记忆**：重要事件、情感连接点
+- **关系动态**：关系的变化轨迹
+
+#### 3. 记忆与经历系统 ✓ 可实现
+- **人生时间线**：关键事件、转折点
+- **重要记忆**：深刻的记忆、情感标记
+- **成长轨迹**：从过去到现在的变化
+- **遗憾与愿望**：未完成的心愿、遗憾
+
+#### 4. 知识与智慧系统 ✓ 可实现
+- **专业知识**：各领域的知识积累
+- **人生智慧**：经验总结、教训、人生哲学
+- **观点立场**：对各种话题的看法和立场
+- **判断力**：决策依据、权衡方式
+
+#### 5. 创造性输出系统 ✓ 可实现
+- **写作风格**：文章、邮件、社交媒体的风格
+- **创意偏好**：审美、艺术偏好、创意方向
+- **决策模式**：在不确定性下的选择倾向
+
+#### 6. AI交互系统 ⚠️ 技术挑战
+- **对话风格**：如何与人交流 ⚠️ 需要大量训练数据
+- **回应模式**：对不同类型问题的回应方式 ⚠️ 需要NLP模型
+- **价值观判断**：在道德困境中的选择 ⚠️ 准确性有限
+- **情感表达**：如何表达关心、支持、批评 ⚠️ 只能模拟
+
+#### 7. 数字遗产执行系统 ✓ 可实现
+- **自动执行**：在特定条件下自动执行遗嘱
+- **渐进式交接**：逐步向继承者释放信息
+- **数字档案传承**：将个人数字档案传递给指定继承人
+
+**技术实现：**
+- 多模态数据采集（文字、语音、视频）✓
+- 人格模型训练（基于用户数据）⚠️ 需要机器学习
+- 语言风格分析（理解用户表达方式）⚠️ 需要NLP
+- 知识图谱构建（组织用户知识）✓
+- AI对话系统（保存用户交互模式）⚠️ 效果有限
+
+**伦理框架：**
+- 用户的数据所有权
+- 继承者的使用权限
+- 禁止商业滥用
+- 明确标注数字档案身份
+
+**重要说明：**
+本阶段的AI相关功能（标记为⚠️）目前技术上可以实现基础版本，但效果有限。这些功能旨在：
+1. 采集和存储用户的人格特征、关系网络、记忆等数据
+2. 提供基础的数据分析和模式识别
+3. 为未来AI技术发展预留接口
+
+**不承诺实现的功能：**
+- 完全自主的AI代理（无法完全自主决策）
+- 实时情感交互（无法真正理解情感）
+- 完全复制个人意识（只能模拟行为模式）
+
 ## 技术实现细节
 
 ### 项目结构
 ```
 remember/
 ├── src/
-│   ├── lib/
-│   │   ├── components/     # Svelte组件
-│   │   ├── stores/         # 状态管理
-│   │   ├── utils/          # 工具函数
+│   ├── components/         # React组件
+│   │   ├── ui/             # shadcn/ui组件
+│   │   ├── auth/           # 认证相关组件
+│   │   ├── credentials/    # 凭证管理组件
+│   │   └── layout/         # 布局组件
+│   ├── hooks/              # 自定义Hooks
+│   ├── lib/                # 工具库
 │   │   ├── crypto.ts       # 加密工具
 │   │   ├── database.ts     # 数据库操作
+│   │   ├── utils.ts        # 通用工具函数
 │   │   └── types.ts        # TypeScript类型
-│   ├── routes/             # 页面路由
-│   ├── app.html            # HTML模板
-│   └── app.css             # 全局样式
-├── static/                 # 静态资源
+│   ├── stores/             # Zustand状态管理
+│   ├── pages/              # 页面组件
+│   ├── App.tsx             # 主应用组件
+│   ├── main.tsx            # 入口文件
+│   └── index.css           # 全局样式
+├── public/                 # 静态资源
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
-└── tailwind.config.js
+├── tailwind.config.js
+└── components.json         # shadcn/ui配置
 ```
 
 ### 关键代码示例
@@ -311,19 +396,34 @@ export class CryptoManager {
 **数据库操作：**
 ```typescript
 // src/lib/database.ts
-export class DatabaseManager {
-    private db: Database;
+import { db } from './database';
+import { CryptoManager } from './crypto';
+
+export class CredentialService {
+    private crypto: CryptoManager;
     
-    async init(): Promise<void> {
-        // 初始化 SQLite 数据库
+    constructor() {
+        this.crypto = new CryptoManager();
     }
     
     async addCredential(credential: Credential): Promise<void> {
-        // 添加密码条目
+        // 加密敏感数据
+        const encrypted = {
+            ...credential,
+            password: await this.crypto.encrypt(credential.password),
+            notes: credential.notes ? await this.crypto.encrypt(credential.notes) : undefined
+        };
+        await db.credentials.add(encrypted);
     }
     
     async searchCredentials(query: string): Promise<Credential[]> {
-        // 搜索密码条目
+        // 搜索凭证
+        return await db.credentials
+            .where('title')
+            .startsWithIgnoreCase(query)
+            .or('username')
+            .startsWithIgnoreCase(query)
+            .toArray();
     }
 }
 ```
@@ -368,11 +468,42 @@ export class DatabaseManager {
 
 ## 总结
 
-**remember** 项目采用本地优先、隐私保护的设计理念，通过现代Web技术实现安全、易用的个人数据管理工具。第一阶段专注于核心密码管理功能，采用完全免费的部署方案，确保项目的可访问性和可持续性。
+**remember** 项目采用本地优先、隐私保护的设计理念，通过现代Web技术实现安全、易用的个人数据管理工具。项目愿景是成为"个人数字档案库"，帮助用户整理、保存并传承其数字存在。
 
-关键优势：
+### 项目意义升华
+
+从"个人数据保险库"到"个人数字档案库"：
+
+1. **不仅仅是密码和资产交接**
+   - 避免逝者没来得及告诉继承者资产分布和账号密码的尴尬
+   - 避免公证费用和法律纠纷
+
+2. **而是将一个人所有值得被数字化的东西全部留存**
+   - 人格特征、思维方式、情感模式
+   - 知识智慧、人生经验、价值观
+   - 关系网络、情感连接、社交模式
+   - 记忆经历、成长轨迹、遗憾愿望
+
+3. **使用和传递**
+   - 让逝者的数字存在继续陪伴家人
+   - 将个人智慧和经验传递给后代
+   - 为未来AI集成提供结构化数据
+
+4. **创造更大的价值**
+   - 数字传承：让人的数字存在得以延续
+   - 智慧传承：保存人类个体的独特性和多样性
+   - 情感连接：让逝者以数字形式继续陪伴家人
+   - AI进化：为构建更人性化的AI提供训练数据
+
+### 关键优势
 1. **隐私优先**：数据完全由用户控制
 2. **零成本**：第一阶段完全免费
 3. **跨平台**：Web App支持所有平台
 4. **可扩展**：模块化设计支持功能扩展
 5. **开源**：透明、可审计、社区驱动
+6. **数字传承**：让人的数字存在得以延续和传承
+
+### 项目愿景
+
+> **remember** 不仅仅是您的"人生数据库"，更是您的"个人数字档案库"。
+> 让您的数字存在得以保存和传承，让您的智慧和情感永远陪伴家人。
