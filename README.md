@@ -20,6 +20,10 @@
 
 <!-- DREAMFIELD_README_HEADER_END -->
 
+<p align="center">
+  <strong>English</strong> | <a href="./README_CN.md">中文</a>
+</p>
+
 ---
 
 # remember
@@ -94,12 +98,103 @@ To maintain its core principles, **remember** will never include:
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Svelte + TypeScript
+- **Frontend**: React + TypeScript
 - **Build Tool**: Vite
-- **Local Database**: SQLite (via sql.js WebAssembly)
+- **Local Database**: IndexedDB + Dexie.js (browser-native)
 - **Encryption**: Web Crypto API (AES-256-GCM)
-- **UI**: Tailwind CSS
+- **UI**: Tailwind CSS + shadcn/ui
+- **State Management**: React Context + Zustand
+- **Desktop App**: Tauri (Recommended) / Electron
+- **Backend**: Not required (first phase) – static hosting only
 - **Deployment**: Static hosting (Vercel/Netlify) – **completely free**
+
+---
+
+## 🔐 Security & Encryption
+
+### Data Encryption
+
+| Layer | Technology | Description |
+|-------|-----------|-------------|
+| Key Derivation | PBKDF2 | 100,000 iterations, SHA-256 |
+| Data Encryption | AES-256-GCM | Military-grade encryption |
+| Storage | IndexedDB | Local encrypted storage |
+
+### Desktop App Security Benefits
+
+Using **Tauri** to package as a desktop app provides higher security:
+
+- ✓ Data stored in local filesystem, not browser environment
+- ✓ Can use OS secure storage (Windows Credential Manager / macOS Keychain)
+- ✓ No XSS attack risk
+- ✓ No browser extension risk
+- ✓ Native system-level security protection
+
+### Security Recommendations
+
+| Deployment | Security Level | Suitable Data |
+|------------|---------------|---------------|
+| **Desktop App (Tauri)** | High | ✓ Passwords, finances, confidential data |
+| PWA | Medium | General personal data |
+| Pure Web | Low-Medium | General personal data |
+
+> **Important**: For storing passwords, financial data, and other highly sensitive information, using the desktop app version is strongly recommended.
+
+---
+
+## 📱 Product Architecture: Local-First + Optional Sync
+
+### Architecture Design
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    User Master Password                  │
+│              (Never leaves local device)                 │
+└─────────────────────────────────────────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+    ┌─────────┐     ┌─────────┐     ┌─────────┐
+    │ Desktop │     │ Mobile  │     │ Tablet  │
+    │   App   │     │   App   │     │   App   │
+    │ (Primary)│    │ (Helper)│     │ (Helper)│
+    └─────────┘     └─────────┘     └─────────┘
+          │               │               │
+          └───────────────┼───────────────┘
+                          ▼
+              ┌─────────────────────┐
+              │  Encrypted Sync     │
+              │ (User's own cloud)  │
+              │ iCloud/OneDrive/etc │
+              └─────────────────────┘
+```
+
+### Platform Responsibilities
+
+| Platform | Role | Main Functions |
+|----------|------|----------------|
+| **Desktop** | Primary | Full feature management, bulk data input, complex operations, highest security |
+| **Mobile** | Helper | Quick password view, biometric unlock, quick notes, photo capture |
+| **Tablet** | Helper | Medium screen experience, between desktop and mobile |
+
+### Sync Security Design
+
+| Principle | Implementation |
+|-----------|---------------|
+| **Data Encryption** | AES-256-GCM, encrypted locally before sync |
+| **Master Password** | Never leaves local device, never uploaded |
+| **Sync Content** | Only encrypted ciphertext, no plaintext |
+| **User Control** | User chooses whether to sync and which cloud storage |
+
+### Supported Cloud Storage (Optional)
+
+- iCloud (Apple devices)
+- OneDrive (Microsoft)
+- Google Drive
+- Dropbox
+- Self-hosted WebDAV
+
+> **Core Principle**: Data always belongs to the user. Cloud storage is only a transmission channel for encrypted data.
 
 ---
 
@@ -139,3 +234,4 @@ To maintain its core principles, **remember** will never include:
 
 - [README_CN.md](./README_CN.md) – 中文文档
 - [plan.md](./plan.md) – Detailed implementation plan
+- [desktop-app.md](./docs/desktop-app.md) – Desktop app packaging guide
