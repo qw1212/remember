@@ -1,57 +1,141 @@
-# React + TypeScript + Vite
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║  DreamSeed 种梦计划 — AI创造者大赛  官方 README 模板                ║
+║                                                                      ║
+║  使用说明：                                                          ║
+║  1. 将本模板放在参赛仓库根目录 README.md 的顶部                       ║
+║  2. 头图使用 DreamField 官方公开活动图片地址                         ║
+║  3. 请保留 DREAMFIELD_README_HEADER_START / END 标识                 ║
+║  4. 分割线以下供创作者自由编写项目内容                               ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<!-- DREAMFIELD_README_HEADER_START -->
 
-Currently, two official plugins are available:
+<p align="center">
+  <a href="https://www.dreamfield.top">
+    <img src="https://www.dreamfield.top/dream-field/contest-readme/assets/dreamseed-readme-banner.png" alt="DreamSeed 种梦计划参赛作品" width="100%" />
+  </a>
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<!-- DREAMFIELD_README_HEADER_END -->
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# remember
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+> **A private, lifelong vault for your passwords, habits, knowledge, dreams, relationships, legacy, and everything that defines you — encrypted and fully under your control.**
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**remember** is your own "digital life book". It helps you settle and organize all the important information in your life — from daily habit check‑ins and fleeting insights, to highly sensitive wills and asset records — in a secure, private, and long‑lasting way.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config({
-  extends: [
-    // other configs...
-    // Enable lint rules for React
-    reactX.configs['recommended-typescript'],
-    // Enable lint rules for React DOM
-    reactDom.configs.recommended,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## 💡 Why remember?
+
+Our lives are made up of countless pieces of information: account passwords, habits we stick to, knowledge we’ve learned, future dreams, important people, and eventually the wills and asset arrangements we must face… These fragments are scattered everywhere.  
+**remember** seeks to give them a unified, secure home that can accompany you for decades.
+
+---
+
+## ✨ Core Features
+
+- 🔐 **Digital Credentials** – accounts, passwords, private keys, etc., stored with strong local encryption  
+- 🧭 **Habit Tracker** – daily check‑ins, streak counts, habit‑forming curves  
+- 📚 **Knowledge Base** – study notes, book excerpts, concept cards  
+- 💭 **Thought Journal** – diaries, reflections, insights  
+- 🌟 **Dream List** – life goals, wishes, progress tracking  
+- 👥 **Important Relationships** – connections and memories of family, close friends, key contacts  
+- 📜 **Will & Instructions** – digital wills, after‑life arrangements, attachment archives  
+- 💰 **Assets** – digital/physical assets, investment records (encrypted storage)  
+- 🧪 **Experience Repository** – project retrospectives, lessons learned, life experience  
+
+**All data is local‑first, offline‑capable, and supports end‑to‑end encryption.**
+
+---
+
+## 🔒 Security & Privacy
+
+- **Zero‑knowledge architecture** – the platform cannot access any of your plaintext; highly sensitive data uses military‑grade encryption  
+- **Fully offline capable** – core functionality requires no network, data is entirely under your control  
+- **Backup & recovery** – supports encrypted export/import to prevent data loss from single points of failure  
+- **Legacy handover** – preset a “digital legacy contact” and time‑triggered mechanism (e.g., prolonged inactivity) to ensure critical information reaches trusted hands when necessary  
+
+> This is your own "life database", not a data mine for cloud providers.
+
+---
+
+## 🎯 Vision & Boundaries
+
+### Core Meaning
+**remember** represents a return to data sovereignty in the digital age. It's not just a tool—it's a philosophy: your digital life should be as private and controllable as your physical one. This project addresses three critical needs:
+1. **Data fragmentation** – Consolidating scattered personal information into one secure location
+2. **Privacy erosion** – Providing a genuine alternative to cloud-dependent services that monetize your data
+3. **Digital legacy** – Ensuring your digital presence can be properly managed and transferred
+
+### Expansion Possibilities
+The project can grow thoughtfully in these directions:
+- **Family sharing** – Secure password sharing and family memory vaults
+- **Time capsules** – Content that unlocks at predetermined future dates
+- **Biometric integration** – Fingerprint and facial recognition for enhanced security
+- **Multi-device sync** – Cross-device access with encryption preservation
+- **Legal integration** – Working with digital estate planning services
+- **Selective AI integration** – Users choose which data to share with AI (e.g., habits, knowledge) while keeping sensitive data (passwords, private notes) encrypted and hidden. Supports custom AI APIs for full control.
+
+### Clear Boundaries
+To maintain its core principles, **remember** will never include:
+- ❌ **Social network features** – Limited sharing (family passwords) is supported, but this is not a social platform
+- ❌ **Data monetization** – No ads, no analytics sales, no third-party data sharing
+- ❌ **Mandatory cloud dependency** – Local-first with optional encrypted cloud backup
+- ❌ **Unnecessary complexity** – No blockchain, cryptocurrency, or over-engineered solutions
+
+> **remember** is your digital sanctuary—private, secure, and entirely yours.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Svelte + TypeScript
+- **Build Tool**: Vite
+- **Local Database**: SQLite (via sql.js WebAssembly)
+- **Encryption**: Web Crypto API (AES-256-GCM)
+- **UI**: Tailwind CSS
+- **Deployment**: Static hosting (Vercel/Netlify) – **completely free**
+
+---
+
+## 🚀 Implementation Roadmap
+
+### Phase 1: MVP (4-6 weeks)
+**Core Features:**
+- User authentication with master password
+- Digital credentials management (CRUD)
+- AES-256-GCM encryption for sensitive data
+- Local SQLite database
+- Basic search and categorization
+- Encrypted export/import
+
+**Deployment:** Static hosting – zero cost
+
+### Phase 2: Feature Expansion (4-6 weeks)
+- Habit tracker
+- Knowledge base
+- Thought journal
+- Dream list
+
+### Phase 3: Advanced Features (4-6 weeks)
+- Digital legacy management
+- Asset tracking
+- Experience repository
+- Advanced search and tagging
+
+### Phase 4: Platform Expansion (6-8 weeks)
+- Desktop app (Electron/Tauri)
+- Mobile app (React Native/Flutter)
+- Optional encrypted cloud backup
+
+---
+
+## 📖 Documentation
+
+- [README_CN.md](./README_CN.md) – 中文文档
+- [plan.md](./plan.md) – Detailed implementation plan
