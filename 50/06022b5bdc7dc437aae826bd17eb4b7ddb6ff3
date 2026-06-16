@@ -1,0 +1,14 @@
+src/lib/utils.ts
+  h_799a224d9b007d 1-3,5-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "5006022b5bdc7dc437aae826bd17eb4b7ddb6ff3",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
