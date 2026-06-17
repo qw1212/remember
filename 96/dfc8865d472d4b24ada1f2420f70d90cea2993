@@ -1,0 +1,16 @@
+.gitignore
+  h_799a224d9b007d 16,20,28,33,37,44-45
+frontend/src-tauri/Cargo.toml
+  h_799a224d9b007d 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "96dfc8865d472d4b24ada1f2420f70d90cea2993",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
