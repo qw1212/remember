@@ -1,0 +1,16 @@
+docs/desktop-app.md
+  h_799a224d9b007d 3
+frontend/src-tauri/src/commands.rs
+  h_799a224d9b007d 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "0f7716360093f89be0a7f17e3c556c2e6cd9a620",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
