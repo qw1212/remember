@@ -1,16 +1,25 @@
 # 桌面应用打包指南
 
-## 方案对比
+## 技术选择：Tauri（Rust后端）
 
 | 特性 | Tauri | Electron |
 |------|-------|----------|
 | 体积 | ~10MB | ~100MB |
 | 性能 | 高 | 中 |
 | 安全性 | 高（Rust后端） | 中 |
-| 依赖 | 需要Rust | 仅Node.js |
-| 跨平台 | ✓ | ✓ |
+| 内存安全 | 编译时检查 | 无 |
+| 系统集成 | 原生API | 有限 |
+| 攻击面 | 小（系统WebView） | 大（捆绑Chromium） |
 
-## 推荐：Tauri（更安全、更轻量）
+**选择Tauri的理由：**
+- Rust后端提供内存安全，无缓冲区溢出漏洞
+- 可调用系统原生API（Keychain等）
+- 系统WebView，攻击面小
+- 安装包体积小
+
+---
+
+## 环境准备
 
 ### 1. 安装Rust
 
@@ -23,19 +32,42 @@ winget install Rustlang.Rustup
 # 或访问 https://rustup.rs/ 下载安装器
 ```
 
-### 2. 安装Tauri CLI
+### 2. 安装系统依赖
+
+**Windows：**
+- 安装 Visual Studio Build Tools（C++桌面开发）
+- 安装 WebView2（Windows 10/11通常已预装）
+
+**macOS：**
+```bash
+xcode-select --install
+```
+
+**Linux (Ubuntu/Debian)：**
+```bash
+sudo apt update
+sudo apt install libwebkit2gtk-4.0-dev build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+### 3. 安装Tauri CLI
 
 ```bash
 cargo install tauri-cli
 ```
 
-### 3. 初始化Tauri
+---
+
+## 项目配置
+
+### 1. 初始化Tauri
+
+在项目根目录执行：
 
 ```bash
 cargo tauri init
 ```
 
-### 4. 配置tauri.conf.json
+### 2. 配置tauri.conf.json
 
 ```json
 {
@@ -77,13 +109,19 @@ cargo tauri init
 }
 ```
 
-### 5. 构建桌面应用
+---
+
+## 构建与运行
+
+### 开发模式
 
 ```bash
-# 开发模式
 cargo tauri dev
+```
 
-# 构建生产版本
+### 构建生产版本
+
+```bash
 cargo tauri build
 ```
 
@@ -91,76 +129,23 @@ cargo tauri build
 
 ---
 
-## 替代方案：Electron（无需Rust）
+## 安全优势
 
-### 1. 安装Electron依赖
+使用Tauri打包桌面应用提供以下安全优势：
 
-```bash
-npm install electron electron-builder --save-dev
-```
-
-### 2. 创建electron/main.js
-
-```javascript
-const { app, BrowserWindow } = require('electron')
-const path = require('path')
-
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
-  })
-
-  win.loadFile('dist/index.html')
-}
-
-app.whenReady().then(createWindow)
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
-```
-
-### 3. 更新package.json
-
-```json
-{
-  "main": "electron/main.js",
-  "scripts": {
-    "electron:dev": "electron .",
-    "electron:build": "electron-builder"
-  },
-  "build": {
-    "appId": "com.remember.app",
-    "productName": "Remember",
-    "directories": {
-      "output": "release"
-    }
-  }
-}
-```
-
-### 4. 构建
-
-```bash
-npm run electron:build
-```
+1. **内存安全** - Rust编译时检查，无缓冲区溢出漏洞
+2. **系统Keychain** - 可调用系统原生安全存储
+3. **最小攻击面** - 系统WebView，不捆绑完整浏览器
+4. **无XSS风险** - 核心加密在Rust后端，不在JS环境
+5. **硬件安全** - 支持HSM/TPM硬件安全模块
 
 ---
 
-## 安全建议
+## 与Svelte集成
 
-无论使用哪种方案，桌面应用都提供以下安全优势：
+Tauri与Svelte配合良好：
 
-1. **本地文件系统存储** - 数据不在浏览器环境中
-2. **系统级安全** - 可使用操作系统的安全存储
-3. **无XSS风险** - 不受浏览器脚本攻击影响
-4. **无扩展风险** - 不受恶意浏览器扩展影响
-
-> 对于存储密码、财务等高度敏感数据，强烈建议使用桌面应用版本。
+1. 前端使用Svelte构建UI
+2. 通过Tauri的IPC机制与Rust后端通信
+3. 敏感操作（加密、密钥管理）在Rust侧处理
+4. 前端仅负责UI交互，不处理加密逻辑

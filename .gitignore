@@ -7,12 +7,35 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Rust / Tauri 编译产物（非常重要！体积巨大）
+frontend/src-tauri/target/
+**/target/
+
+# Tauri 自动生成文件（可重新生成）
+frontend/src-tauri/gen/
+
+# 环境变量和密钥文件（安全相关！）
+.env
+.env.*
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 数据库文件（可能包含用户数据）
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE / 编辑器目录和文件
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +45,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Trae IDE 配置
+.trae/
+
+# Rust 编译缓存
+**/CACHEDIR.TAG
+**/.rustc_info.json
+**/.cargo-lock
+**/.cargo-build-lock
+
+# 操作系统文件
+Thumbs.db
+Desktop.ini

@@ -98,47 +98,65 @@ To maintain its core principles, **remember** will never include:
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React + TypeScript
-- **Build Tool**: Vite
-- **Local Database**: IndexedDB + Dexie.js (browser-native)
-- **Encryption**: Web Crypto API (AES-256-GCM)
-- **UI**: Tailwind CSS + shadcn/ui
-- **State Management**: React Context + Zustand
-- **Desktop App**: Tauri (Recommended) / Electron
-- **Backend**: Not required (first phase) – static hosting only
-- **Deployment**: Static hosting (Vercel/Netlify) – **completely free**
+| Component | Technology | Reason |
+|-----------|------------|--------|
+| **Frontend** | Svelte + TypeScript | Compile-time framework, small runtime, minimal attack surface |
+| **Desktop** | Tauri (Rust backend) | Memory safe, system WebView, small attack surface |
+| **Core Encryption** | Rust native libsodium | High-level security, Argon2id, avoids JS environment risks |
+| **Sensitive Storage** | System Keychain | Hardware security, keys never enter JS memory |
+| **General Storage** | SQLite + SQLCipher | Local file encryption, managed by Rust |
+| **Build Tool** | Vite | Fast builds, HMR support |
+| **UI Framework** | Tailwind CSS | Atomic CSS, easy to maintain |
 
 ---
 
 ## 🔐 Security & Encryption
 
-### Data Encryption
+### Core Security Architecture
 
-| Layer | Technology | Description |
-|-------|-----------|-------------|
-| Key Derivation | PBKDF2 | 100,000 iterations, SHA-256 |
-| Data Encryption | AES-256-GCM | Military-grade encryption |
-| Storage | IndexedDB | Local encrypted storage |
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend (Svelte)                      │
+│            UI only, no encryption logic                   │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│                    Tauri Backend (Rust)                   │
+│         Core encryption, key management, storage          │
+│              ↓                    ↓                     │
+│      libsodium encryption    System Keychain storage      │
+└─────────────────────────────────────────────────────────┘
+```
 
-### Desktop App Security Benefits
+### Security Features
 
-Using **Tauri** to package as a desktop app provides higher security:
+| Feature | Implementation | Security Level |
+|---------|---------------|----------------|
+| **Key Derivation** | Argon2id (memory-hard) | Highest |
+| **Data Encryption** | libsodium secretbox (XSalsa20-Poly1305) | Highest |
+| **Key Storage** | System Keychain (hardware) | Highest |
+| **General Data** | SQLite + SQLCipher | High |
+| **Memory Safety** | Rust compile-time checks | Highest |
 
-- ✓ Data stored in local filesystem, not browser environment
-- ✓ Can use OS secure storage (Windows Credential Manager / macOS Keychain)
-- ✓ No XSS attack risk
-- ✓ No browser extension risk
-- ✓ Native system-level security protection
+### Security Advantages
 
-### Security Recommendations
+- ✓ **Encryption in Rust backend**: Core logic not in JS, avoids XSS risks
+- ✓ **Hardware key security**: Keys stored in system Keychain, HSM/TPM support
+- ✓ **Argon2id algorithm**: Anti-GPU/ASIC brute force, industry gold standard
+- ✓ **Memory safe**: Rust compile-time checks, no buffer overflow vulnerabilities
+- ✓ **Minimal attack surface**: Svelte compile-time + Tauri system WebView
 
-| Deployment | Security Level | Suitable Data |
-|------------|---------------|---------------|
-| **Desktop App (Tauri)** | High | ✓ Passwords, finances, confidential data |
-| PWA | Medium | General personal data |
-| Pure Web | Low-Medium | General personal data |
+### Data Security Levels
 
-> **Important**: For storing passwords, financial data, and other highly sensitive information, using the desktop app version is strongly recommended.
+| Data Type | Storage | Encryption | Security Level |
+|-----------|---------|------------|----------------|
+| Bank card passwords | System Keychain | Hardware | Highest |
+| Other passwords | System Keychain | Hardware | Highest |
+| Private notes | SQLite + SQLCipher | libsodium | High |
+| Habits, knowledge | SQLite + SQLCipher | libsodium | High |
+
+> **Important**: Bank card passwords and other highly sensitive data are only stored locally encrypted, not synced to the cloud.
 
 ---
 
@@ -235,3 +253,4 @@ Using **Tauri** to package as a desktop app provides higher security:
 - [README_CN.md](./README_CN.md) – 中文文档
 - [plan.md](./plan.md) – Detailed implementation plan
 - [desktop-app.md](./docs/desktop-app.md) – Desktop app packaging guide
+- [security.md](./docs/security.md) – Security architecture documentation

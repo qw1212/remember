@@ -1,0 +1,63 @@
+// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use remember_lib::storage;
+use remember_lib::commands;
+use std::sync::{Arc, Mutex};
+use commands::AppState;
+use storage::StorageManager;
+use tauri::Manager;
+
+fn main() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            // 获取应用数据目录
+            let app_data_dir = app.path().app_data_dir()
+                .expect("无法获取应用数据目录");
+            
+            // 创建目录（如果不存在）
+            std::fs::create_dir_all(&app_data_dir)
+                .expect("无法创建应用数据目录");
+            
+            // 初始化存储管理器
+            let storage_manager = Arc::new(StorageManager::new());
+            storage_manager.init_database(&app_data_dir)
+                .expect("无法初始化数据库");
+            
+            // 创建应用状态
+            let state = AppState {
+                storage: storage_manager,
+                is_locked: Mutex::new(true),
+                master_key: Mutex::new(None),
+            };
+            
+            // 管理状态
+            app.manage(state);
+            
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            // 加密相关命令
+            commands::derive_key,
+            commands::encrypt_data,
+            commands::decrypt_data,
+            commands::generate_password,
+            // 存储相关命令
+            commands::save_credential,
+            commands::get_credentials,
+            commands::delete_credential,
+            commands::update_credential,
+            // 密钥管理
+            commands::set_master_password,
+            commands::verify_master_password,
+            commands::is_master_password_set,
+            commands::lock_app,
+            commands::is_locked,
+            // 导入导出
+            commands::export_data,
+            commands::import_data,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
