@@ -28,6 +28,8 @@
 
 # remember
 
+> **你的私密终身保险库 —— 密码、习惯、知识、梦想、人际关系、数字遗产，以及一切定义你的东西，全部加密，完全由你掌控。**
+>
 > **A private, lifelong vault for your passwords, habits, knowledge, dreams, relationships, legacy, and everything that defines you — encrypted and fully under your control.**
 
 **remember** is your own "digital life book". It helps you settle and organize all the important information in your life — from daily habit check‑ins and fleeting insights, to highly sensitive wills and asset records — in a secure, private, and long‑lasting way.

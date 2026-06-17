@@ -1,7 +1,7 @@
 [package]
 name = "remember"
 version = "1.0.0"
-description = "A secure personal digital archive"
+description = "你的私密终身保险库 —— 密码、习惯、知识、梦想、人际关系、数字遗产，全部加密，完全由你掌控"
 authors = ["Remember Team"]
 edition = "2021"
 

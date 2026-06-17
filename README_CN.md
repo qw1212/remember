@@ -28,7 +28,9 @@
 
 # remember（记忆）
 
-> **一个私密的终身保险库，用于存储您的数字生活——不仅仅是密码和资产，更是您的人格、智慧、关系和记忆。**
+> **你的私密终身保险库 —— 密码、习惯、知识、梦想、人际关系、数字遗产，以及一切定义你的东西，全部加密，完全由你掌控。**
+>
+> **A private, lifelong vault for your passwords, habits, knowledge, dreams, relationships, legacy, and everything that defines you — encrypted and fully under your control.**
 
 **remember** 是您的个人数字档案库。它保存定义您的一切——从日常习惯和转瞬即逝的灵感，到您的人格特征、思维模式、情感反应，以及一生积累的智慧。它旨在帮助您整理、保存，并最终传承您的数字存在。
 
