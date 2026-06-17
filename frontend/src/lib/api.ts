@@ -306,10 +306,36 @@ export async function aiChat(config: AiConfig, messages: ChatMessage[]): Promise
 }
 
 /**
+ * AI 流式聊天（通过事件接收数据）
+ */
+export async function aiChatStream(config: AiConfig, messages: ChatMessage[]): Promise<AiChatResponse> {
+  return await invoke<AiChatResponse>('ai_chat_stream', { config, messages });
+}
+
+/**
  * 获取回忆录引导对话的 System Prompt
  */
 export async function getMemoirPrompt(): Promise<string> {
   return await invoke<string>('get_memoir_prompt');
+}
+
+/**
+ * AI 发现回忆关联
+ */
+export async function aiFindRelated(
+  config: AiConfig,
+  memoirId: string,
+  memoirTitle: string,
+  memoirContent: string,
+  allMemoirs: Memoir[]
+): Promise<AiChatResponse> {
+  return await invoke<AiChatResponse>('ai_find_related', {
+    config,
+    memoirId,
+    memoirTitle,
+    memoirContent,
+    allMemoirs
+  });
 }
 
 /**

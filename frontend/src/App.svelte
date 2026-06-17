@@ -3,6 +3,7 @@
   import Login from './lib/components/Login.svelte';
   import CredentialList from './lib/components/CredentialList.svelte';
   import CredentialForm from './lib/components/CredentialForm.svelte';
+  import MemoirPanel from './lib/components/memoir/MemoirPanel.svelte';
   import type { Credential } from './lib/api';
   
   let isLoggedIn = false;
@@ -60,10 +61,10 @@
         </button>
         <button 
           class="nav-btn"
-          class:active={activeTab === 'notes'}
-          on:click={() => activeTab = 'notes'}
+          class:active={activeTab === 'memoir'}
+          on:click={() => activeTab = 'memoir'}
         >
-          📝 笔记
+          📖 回忆录
         </button>
         <button 
           class="nav-btn"
@@ -77,11 +78,8 @@
       <main class="app-content">
         {#if activeTab === 'credentials'}
           <CredentialList />
-        {:else if activeTab === 'notes'}
-          <div class="coming-soon">
-            <h2>📝 笔记功能</h2>
-            <p>即将推出...</p>
-          </div>
+        {:else if activeTab === 'memoir'}
+          <MemoirPanel />
         {:else if activeTab === 'settings'}
           <div class="coming-soon">
             <h2>⚙️ 设置</h2>

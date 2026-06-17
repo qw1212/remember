@@ -5,6 +5,8 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use reqwest::Url;
+use tauri::{AppHandle, Emitter};
+use futures_util::StreamExt;
 
 #[derive(Error, Debug)]
 pub enum AiError {
@@ -60,6 +62,13 @@ struct OllamaResponse {
     message: OllamaMessage,
 }
 
+/// Ollama 流式响应结构
+#[derive(Deserialize)]
+struct OllamaStreamResponse {
+    message: Option<OllamaMessage>,
+    done: bool,
+}
+
 /// OpenAI API 请求结构
 #[derive(Serialize)]
 struct OpenAiRequest {
@@ -83,6 +92,24 @@ struct OpenAiResponse {
 #[derive(Deserialize)]
 struct OpenAiChoice {
     message: OpenAiMessage,
+}
+
+/// OpenAI 流式响应结构
+#[derive(Deserialize)]
+struct OpenAiStreamResponse {
+    choices: Vec<OpenAiStreamChoice>,
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct OpenAiStreamChoice {
+    delta: OpenAiDelta,
+    finish_reason: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct OpenAiDelta {
+    content: Option<String>,
 }
 
 /// AI 客户端
@@ -197,6 +224,155 @@ impl AiClient {
         }
 
         Ok(content)
+    }
+
+    /// 流式聊天请求，通过事件向前端推送数据
+    pub async fn chat_stream(&self, messages: Vec<ChatMessage>, app: AppHandle) -> Result<String, AiError> {
+        match self.config.provider.as_str() {
+            "ollama" => self.chat_ollama_stream(messages, app).await,
+            "openai" => self.chat_openai_stream(messages, app).await,
+            _ => Err(AiError::ConfigError(format!(
+                "不支持的AI提供商: {}",
+                self.config.provider
+            ))),
+        }
+    }
+
+    /// Ollama 流式聊天
+    async fn chat_ollama_stream(&self, messages: Vec<ChatMessage>, app: AppHandle) -> Result<String, AiError> {
+        let ollama_messages: Vec<OllamaMessage> = messages
+            .into_iter()
+            .map(|m| OllamaMessage {
+                role: m.role,
+                content: m.content,
+            })
+            .collect();
+
+        let request = OllamaRequest {
+            model: self.config.model.clone(),
+            messages: ollama_messages,
+            stream: true,
+        };
+
+        let base_url = Url::parse(&self.config.api_url)
+            .map_err(|e| AiError::ConfigError(format!("无效的API URL: {}", e)))?;
+        let url = base_url.join("api/chat")
+            .map_err(|e| AiError::ConfigError(format!("URL拼接失败: {}", e)))?;
+
+        let response = self
+            .client
+            .post(url)
+            .json(&request)
+            .send()
+            .await?;
+
+        let mut full_content = String::new();
+        let mut stream = response.bytes_stream();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| AiError::HttpError(e))?;
+            let text = String::from_utf8_lossy(&chunk);
+            
+            // Ollama 返回的是 NDJSON，每行一个 JSON
+            for line in text.lines() {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                if let Ok(resp) = serde_json::from_str::<OllamaStreamResponse>(line) {
+                    if let Some(msg) = resp.message {
+                        if !msg.content.is_empty() {
+                            full_content.push_str(&msg.content);
+                            // 发送事件到前端
+                            let _ = app.emit("ai-stream-chunk", &msg.content);
+                        }
+                    }
+                    if resp.done {
+                        let _ = app.emit("ai-stream-done", ());
+                        return Ok(full_content);
+                    }
+                }
+            }
+        }
+
+        if full_content.is_empty() {
+            return Err(AiError::EmptyResponse);
+        }
+
+        let _ = app.emit("ai-stream-done", ());
+        Ok(full_content)
+    }
+
+    /// OpenAI 流式聊天
+    async fn chat_openai_stream(&self, messages: Vec<ChatMessage>, app: AppHandle) -> Result<String, AiError> {
+        let api_key = self
+            .config
+            .api_key
+            .as_ref()
+            .ok_or(AiError::ConfigError("OpenAI需要API Key".to_string()))?;
+
+        let openai_messages: Vec<OpenAiMessage> = messages
+            .into_iter()
+            .map(|m| OpenAiMessage {
+                role: m.role,
+                content: m.content,
+            })
+            .collect();
+
+        let request = OpenAiRequest {
+            model: self.config.model.clone(),
+            messages: openai_messages,
+            stream: true,
+        };
+
+        let base_url = Url::parse(&self.config.api_url)
+            .map_err(|e| AiError::ConfigError(format!("无效的API URL: {}", e)))?;
+        let url = base_url.join("v1/chat/completions")
+            .map_err(|e| AiError::ConfigError(format!("URL拼接失败: {}", e)))?;
+
+        let response = self
+            .client
+            .post(url)
+            .header("Authorization", format!("Bearer {}", api_key))
+            .json(&request)
+            .send()
+            .await?;
+
+        let mut full_content = String::new();
+        let mut stream = response.bytes_stream();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| AiError::HttpError(e))?;
+            let text = String::from_utf8_lossy(&chunk);
+            
+            // OpenAI 返回的是 SSE 格式
+            for line in text.lines() {
+                if !line.starts_with("data: ") {
+                    continue;
+                }
+                let data = &line[6..];
+                if data.trim() == "[DONE]" {
+                    let _ = app.emit("ai-stream-done", ());
+                    return Ok(full_content);
+                }
+                if let Ok(resp) = serde_json::from_str::<OpenAiStreamResponse>(data) {
+                    if let Some(choice) = resp.choices.first() {
+                        if let Some(content) = &choice.delta.content {
+                            if !content.is_empty() {
+                                full_content.push_str(content);
+                                let _ = app.emit("ai-stream-chunk", content);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if full_content.is_empty() {
+            return Err(AiError::EmptyResponse);
+        }
+
+        let _ = app.emit("ai-stream-done", ());
+        Ok(full_content)
     }
 }
 

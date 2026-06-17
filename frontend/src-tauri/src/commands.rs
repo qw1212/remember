@@ -571,10 +571,107 @@ pub async fn ai_chat(
     }
 }
 
+/// AI 流式聊天命令
+#[tauri::command]
+pub async fn ai_chat_stream(
+    app: tauri::AppHandle,
+    config: AiConfig,
+    messages: Vec<ChatMessage>,
+) -> Result<AiChatResponse, String> {
+    let client = AiClient::new(config);
+    match client.chat_stream(messages, app).await {
+        Ok(content) => Ok(AiChatResponse {
+            success: true,
+            content: Some(content),
+            error: None,
+        }),
+        Err(e) => Ok(AiChatResponse {
+            success: false,
+            content: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
 /// 获取回忆录引导对话的 System Prompt
 #[tauri::command]
 pub async fn get_memoir_prompt() -> Result<String, String> {
     Ok(get_memoir_system_prompt())
+}
+
+/// AI 发现回忆关联
+#[tauri::command]
+pub async fn ai_find_related(
+    config: AiConfig,
+    memoir_id: String,
+    memoir_title: String,
+    memoir_content: String,
+    all_memoirs: Vec<Memoir>,
+) -> Result<AiChatResponse, String> {
+    let client = AiClient::new(config);
+    
+    // 构建提示词
+    let other_memoirs: Vec<serde_json::Value> = all_memoirs
+        .iter()
+        .filter(|m| m.id != memoir_id)
+        .map(|m| serde_json::json!({
+            "id": m.id,
+            "title": m.title,
+            "summary": m.summary,
+            "tags": m.tags,
+            "people": m.people,
+            "location": m.location,
+            "category": m.category
+        }))
+        .collect();
+    
+    let prompt = format!(
+        r#"你是一个回忆关联分析助手。请分析以下回忆与其他回忆之间的关联。
+
+当前回忆：
+标题：{}
+内容：{}
+
+其他回忆列表：
+{}
+
+请找出与当前回忆相关的回忆（最多3个），并说明关联原因。
+返回JSON格式：
+{{
+  "related": [
+    {{"memoir_id": "id", "relation": "关联描述"}}
+  ]
+}}
+
+只返回JSON，不要其他文字。"#,
+        memoir_title,
+        memoir_content,
+        serde_json::to_string_pretty(&other_memoirs).unwrap_or_default()
+    );
+    
+    let messages = vec![
+        ChatMessage {
+            role: "system".to_string(),
+            content: "你是回忆关联分析助手。".to_string(),
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: prompt,
+        },
+    ];
+    
+    match client.chat(messages).await {
+        Ok(content) => Ok(AiChatResponse {
+            success: true,
+            content: Some(content),
+            error: None,
+        }),
+        Err(e) => Ok(AiChatResponse {
+            success: false,
+            content: None,
+            error: Some(e.to_string()),
+        }),
+    }
 }
 
 /// AI 提取标签

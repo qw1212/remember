@@ -68,7 +68,9 @@ fn main() {
             commands::delete_memoir_link,
             // AI 相关命令
             commands::ai_chat,
+            commands::ai_chat_stream,
             commands::get_memoir_prompt,
+            commands::ai_find_related,
             commands::ai_extract_tags,
             commands::ai_generate_summary,
             commands::ai_analyze_emotion,

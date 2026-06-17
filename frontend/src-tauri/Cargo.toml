@@ -18,7 +18,7 @@ tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # 加密相关
-# libsodium-sys-stable = "1"  # libsodium绑定（后续添加）
+chacha20poly1305 = "0.10"  # AEAD加密（ChaCha20-Poly1305）
 # 密钥存储
 keyring = "3"  # 系统Keychain访问
 # 数据库
@@ -34,4 +34,6 @@ getrandom = "0.2"
 # SHA-256哈希
 sha2 = "0.10"
 # HTTP客户端（用于AI API调用）
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"] }
+# 流式响应处理
+futures-util = "0.3"

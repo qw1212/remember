@@ -204,31 +204,31 @@ src/lib/components/
 
 #### 实施步骤
 
-**步骤 1：数据层（Rust 后端）**
-- [ ] 在 storage.rs 中添加 memoirs 和 memoir_links 表
-- [ ] 实现回忆条目的 CRUD 命令
-- [ ] 添加搜索命令（支持模糊匹配）
+**步骤 1：数据层（Rust 后端）** ✅
+- [x] 在 storage.rs 中添加 memoirs 和 memoir_links 表
+- [x] 实现回忆条目的 CRUD 命令
+- [x] 添加搜索命令（支持模糊匹配）
 
-**步骤 2：AI 模块（Rust 后端）**
-- [ ] 新建 ai.rs 模块，实现 Ollama/OpenAI HTTP 调用
-- [ ] 实现 ai_chat、ai_extract_tags、ai_generate_summary、ai_analyze_emotion 命令
-- [ ] 在 settings 中添加 AI 配置管理
+**步骤 2：AI 模块（Rust 后端）** ✅
+- [x] 新建 ai.rs 模块，实现 Ollama/OpenAI HTTP 调用
+- [x] 实现 ai_chat、ai_extract_tags、ai_generate_summary、ai_analyze_emotion 命令
+- [x] 在 settings 中添加 AI 配置管理
 
-**步骤 3：前端基础组件**
-- [ ] 在 App.svelte 中添加"回忆录"Tab
-- [ ] 实现 MemoirPanel 主面板
-- [ ] 实现 MemoirList 和 MemoirCard 组件
+**步骤 3：前端基础组件** ✅
+- [x] 在 App.svelte 中添加"回忆录"Tab
+- [x] 实现 MemoirPanel 主面板
+- [x] 实现 MemoirList 和 MemoirCard 组件
 
-**步骤 4：AI 对话界面**
-- [ ] 实现 AiChat 对话组件（流式显示）
-- [ ] 设计 System Prompt（回忆引导提示词）
-- [ ] 对话结束后自动生成回忆条目
+**步骤 4：AI 对话界面** ✅
+- [x] 实现 AiChat 对话组件（流式显示）
+- [x] 设计 System Prompt（回忆引导提示词）
+- [x] 对话结束后自动生成回忆条目
 
-**步骤 5：高级功能**
-- [ ] 时间线视图
-- [ ] 智能搜索
-- [ ] 回忆关联
-- [ ] 情感分析展示
+**步骤 5：高级功能** ✅
+- [x] 时间线视图
+- [x] 智能搜索
+- [x] 回忆关联
+- [x] 情感分析展示
 
 #### System Prompt 设计示例
 
