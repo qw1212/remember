@@ -1,0 +1,12 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "ac279dc2a23138783a74f8f065f66398ded964a3",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
