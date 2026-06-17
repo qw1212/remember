@@ -57,6 +57,21 @@ fn main() {
             // 导入导出
             commands::export_data,
             commands::import_data,
+            // 回忆录相关命令
+            commands::save_memoir,
+            commands::get_memoirs,
+            commands::get_memoir_by_id,
+            commands::delete_memoir,
+            commands::search_memoirs,
+            commands::save_memoir_link,
+            commands::get_memoir_links,
+            commands::delete_memoir_link,
+            // AI 相关命令
+            commands::ai_chat,
+            commands::get_memoir_prompt,
+            commands::ai_extract_tags,
+            commands::ai_generate_summary,
+            commands::ai_analyze_emotion,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -5,7 +5,8 @@
 use tauri::State;
 use std::sync::Arc;
 use crate::crypto::{EncryptedData};
-use crate::storage::{StorageManager, Credential};
+use crate::storage::{StorageManager, Credential, Memoir, MemoirLink};
+use crate::ai::{AiClient, AiConfig, ChatMessage, get_memoir_system_prompt, get_extract_tags_prompt, get_summary_prompt, get_emotion_prompt};
 use std::sync::Mutex;
 
 /// Base64编码辅助函数
@@ -42,6 +43,22 @@ pub struct EncryptResponse {
 pub struct CredentialListResponse {
     pub success: bool,
     pub data: Option<Vec<Credential>>,
+    pub error: Option<String>,
+}
+
+/// 回忆录列表响应
+#[derive(serde::Serialize)]
+pub struct MemoirListResponse {
+    pub success: bool,
+    pub data: Option<Vec<Memoir>>,
+    pub error: Option<String>,
+}
+
+/// 回忆录关联列表响应
+#[derive(serde::Serialize)]
+pub struct MemoirLinkListResponse {
+    pub success: bool,
+    pub data: Option<Vec<MemoirLink>>,
     pub error: Option<String>,
 }
 
@@ -361,6 +378,291 @@ pub async fn import_data(state: State<'_, AppState>, data: String) -> Result<Api
         Err(e) => Ok(ApiResponse {
             success: false,
             message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+// ==================== 回忆录相关命令 ====================
+
+/// 保存回忆条目
+#[tauri::command]
+pub async fn save_memoir(
+    state: State<'_, AppState>,
+    memoir: Memoir,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_memoir(&memoir) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("回忆已保存".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取所有回忆条目
+#[tauri::command]
+pub async fn get_memoirs(state: State<'_, AppState>) -> Result<MemoirListResponse, String> {
+    match state.storage.get_memoirs() {
+        Ok(memoirs) => Ok(MemoirListResponse {
+            success: true,
+            data: Some(memoirs),
+            error: None,
+        }),
+        Err(e) => Ok(MemoirListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 根据ID获取回忆条目
+#[tauri::command]
+pub async fn get_memoir_by_id(state: State<'_, AppState>, id: String) -> Result<MemoirListResponse, String> {
+    match state.storage.get_memoir_by_id(&id) {
+        Ok(Some(memoir)) => Ok(MemoirListResponse {
+            success: true,
+            data: Some(vec![memoir]),
+            error: None,
+        }),
+        Ok(None) => Ok(MemoirListResponse {
+            success: false,
+            data: None,
+            error: Some("回忆不存在".to_string()),
+        }),
+        Err(e) => Ok(MemoirListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除回忆条目
+#[tauri::command]
+pub async fn delete_memoir(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_memoir(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("回忆已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 搜索回忆条目
+#[tauri::command]
+pub async fn search_memoirs(state: State<'_, AppState>, keyword: String) -> Result<MemoirListResponse, String> {
+    match state.storage.search_memoirs(&keyword) {
+        Ok(memoirs) => Ok(MemoirListResponse {
+            success: true,
+            data: Some(memoirs),
+            error: None,
+        }),
+        Err(e) => Ok(MemoirListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 保存回忆关联
+#[tauri::command]
+pub async fn save_memoir_link(
+    state: State<'_, AppState>,
+    link: MemoirLink,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_memoir_link(&link) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("关联已保存".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取回忆条目的所有关联
+#[tauri::command]
+pub async fn get_memoir_links(state: State<'_, AppState>, memoir_id: String) -> Result<MemoirLinkListResponse, String> {
+    match state.storage.get_memoir_links(&memoir_id) {
+        Ok(links) => Ok(MemoirLinkListResponse {
+            success: true,
+            data: Some(links),
+            error: None,
+        }),
+        Err(e) => Ok(MemoirLinkListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除回忆关联
+#[tauri::command]
+pub async fn delete_memoir_link(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_memoir_link(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("关联已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+// ==================== AI 相关命令 ====================
+
+/// AI 聊天响应
+#[derive(serde::Serialize)]
+pub struct AiChatResponse {
+    pub success: bool,
+    pub content: Option<String>,
+    pub error: Option<String>,
+}
+
+/// AI 字符串列表响应
+#[derive(serde::Serialize)]
+pub struct AiStringListResponse {
+    pub success: bool,
+    pub data: Option<Vec<String>>,
+    pub error: Option<String>,
+}
+
+/// AI 聊天命令
+#[tauri::command]
+pub async fn ai_chat(
+    config: AiConfig,
+    messages: Vec<ChatMessage>,
+) -> Result<AiChatResponse, String> {
+    let client = AiClient::new(config);
+    match client.chat(messages).await {
+        Ok(content) => Ok(AiChatResponse {
+            success: true,
+            content: Some(content),
+            error: None,
+        }),
+        Err(e) => Ok(AiChatResponse {
+            success: false,
+            content: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取回忆录引导对话的 System Prompt
+#[tauri::command]
+pub async fn get_memoir_prompt() -> Result<String, String> {
+    Ok(get_memoir_system_prompt())
+}
+
+/// AI 提取标签
+#[tauri::command]
+pub async fn ai_extract_tags(
+    config: AiConfig,
+    content: String,
+) -> Result<AiStringListResponse, String> {
+    let client = AiClient::new(config);
+    let prompt = get_extract_tags_prompt(&content);
+    let messages = vec![ChatMessage {
+        role: "user".to_string(),
+        content: prompt,
+    }];
+    
+    match client.chat(messages).await {
+        Ok(response) => {
+            // 尝试解析 JSON 数组
+            match serde_json::from_str::<Vec<String>>(&response) {
+                Ok(tags) => Ok(AiStringListResponse {
+                    success: true,
+                    data: Some(tags),
+                    error: None,
+                }),
+                Err(_) => Ok(AiStringListResponse {
+                    success: false,
+                    data: None,
+                    error: Some("无法解析AI返回的标签".to_string()),
+                }),
+            }
+        }
+        Err(e) => Ok(AiStringListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// AI 生成摘要
+#[tauri::command]
+pub async fn ai_generate_summary(
+    config: AiConfig,
+    content: String,
+) -> Result<AiChatResponse, String> {
+    let client = AiClient::new(config);
+    let prompt = get_summary_prompt(&content);
+    let messages = vec![ChatMessage {
+        role: "user".to_string(),
+        content: prompt,
+    }];
+    
+    match client.chat(messages).await {
+        Ok(summary) => Ok(AiChatResponse {
+            success: true,
+            content: Some(summary),
+            error: None,
+        }),
+        Err(e) => Ok(AiChatResponse {
+            success: false,
+            content: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// AI 分析情感
+#[tauri::command]
+pub async fn ai_analyze_emotion(
+    config: AiConfig,
+    content: String,
+) -> Result<AiChatResponse, String> {
+    let client = AiClient::new(config);
+    let prompt = get_emotion_prompt(&content);
+    let messages = vec![ChatMessage {
+        role: "user".to_string(),
+        content: prompt,
+    }];
+    
+    match client.chat(messages).await {
+        Ok(emotion) => Ok(AiChatResponse {
+            success: true,
+            content: Some(emotion),
+            error: None,
+        }),
+        Err(e) => Ok(AiChatResponse {
+            success: false,
+            content: None,
             error: Some(e.to_string()),
         }),
     }

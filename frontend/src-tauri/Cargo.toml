@@ -33,3 +33,5 @@ base64 = "0.22"
 getrandom = "0.2"
 # SHA-256哈希
 sha2 = "0.10"
+# HTTP客户端（用于AI API调用）
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }

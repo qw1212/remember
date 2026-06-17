@@ -176,3 +176,159 @@ export async function exportData(): Promise<ApiResponse> {
 export async function importData(data: string): Promise<ApiResponse> {
   return await invoke<ApiResponse>('import_data', { data });
 }
+
+// ==================== 回忆录相关 API ====================
+
+export interface Memoir {
+  id: string;
+  title: string;
+  content: string;
+  summary?: string;
+  event_date?: string;
+  location?: string;
+  people: string[];
+  tags: string[];
+  category: string;
+  emotion?: string;
+  ai_conversation?: string;
+  is_private: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemoirLink {
+  id: string;
+  from_id: string;
+  to_id: string;
+  relation?: string;
+  created_at: string;
+}
+
+export interface MemoirListResponse {
+  success: boolean;
+  data?: Memoir[];
+  error?: string;
+}
+
+export interface MemoirLinkListResponse {
+  success: boolean;
+  data?: MemoirLink[];
+  error?: string;
+}
+
+/**
+ * 保存回忆条目
+ */
+export async function saveMemoir(memoir: Memoir): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_memoir', { memoir });
+}
+
+/**
+ * 获取所有回忆条目
+ */
+export async function getMemoirs(): Promise<MemoirListResponse> {
+  return await invoke<MemoirListResponse>('get_memoirs');
+}
+
+/**
+ * 根据ID获取回忆条目
+ */
+export async function getMemoirById(id: string): Promise<MemoirListResponse> {
+  return await invoke<MemoirListResponse>('get_memoir_by_id', { id });
+}
+
+/**
+ * 删除回忆条目
+ */
+export async function deleteMemoir(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_memoir', { id });
+}
+
+/**
+ * 搜索回忆条目
+ */
+export async function searchMemoirs(keyword: string): Promise<MemoirListResponse> {
+  return await invoke<MemoirListResponse>('search_memoirs', { keyword });
+}
+
+/**
+ * 保存回忆关联
+ */
+export async function saveMemoirLink(link: MemoirLink): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_memoir_link', { link });
+}
+
+/**
+ * 获取回忆条目的所有关联
+ */
+export async function getMemoirLinks(memoirId: string): Promise<MemoirLinkListResponse> {
+  return await invoke<MemoirLinkListResponse>('get_memoir_links', { memoirId });
+}
+
+/**
+ * 删除回忆关联
+ */
+export async function deleteMemoirLink(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_memoir_link', { id });
+}
+
+// ==================== AI 相关 API ====================
+
+export interface AiConfig {
+  provider: string;        // "ollama" | "openai"
+  api_url: string;         // Ollama: http://localhost:11434, OpenAI: https://api.openai.com
+  api_key?: string;        // OpenAI API Key
+  model: string;           // 模型名称
+}
+
+export interface ChatMessage {
+  role: string;    // "system" | "user" | "assistant"
+  content: string;
+}
+
+export interface AiChatResponse {
+  success: boolean;
+  content?: string;
+  error?: string;
+}
+
+export interface AiStringListResponse {
+  success: boolean;
+  data?: string[];
+  error?: string;
+}
+
+/**
+ * AI 聊天
+ */
+export async function aiChat(config: AiConfig, messages: ChatMessage[]): Promise<AiChatResponse> {
+  return await invoke<AiChatResponse>('ai_chat', { config, messages });
+}
+
+/**
+ * 获取回忆录引导对话的 System Prompt
+ */
+export async function getMemoirPrompt(): Promise<string> {
+  return await invoke<string>('get_memoir_prompt');
+}
+
+/**
+ * AI 提取标签
+ */
+export async function aiExtractTags(config: AiConfig, content: string): Promise<AiStringListResponse> {
+  return await invoke<AiStringListResponse>('ai_extract_tags', { config, content });
+}
+
+/**
+ * AI 生成摘要
+ */
+export async function aiGenerateSummary(config: AiConfig, content: string): Promise<AiChatResponse> {
+  return await invoke<AiChatResponse>('ai_generate_summary', { config, content });
+}
+
+/**
+ * AI 分析情感
+ */
+export async function aiAnalyzeEmotion(config: AiConfig, content: string): Promise<AiChatResponse> {
+  return await invoke<AiChatResponse>('ai_analyze_emotion', { config, content });
+}
