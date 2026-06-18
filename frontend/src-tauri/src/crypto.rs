@@ -8,7 +8,7 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit},
     ChaCha20Poly1305, Nonce,
 };
-use sha2::{Sha256, Digest};
+
 
 #[derive(Error, Debug)]
 pub enum CryptoError {
@@ -48,7 +48,7 @@ pub fn generate_random_bytes(length: usize) -> Vec<u8> {
 
 /// HMAC-SHA256 实现
 fn hmac_sha256(key: &[u8], data: &[u8]) -> [u8; 32] {
-    use sha2::Sha256;
+    use sha2::{Sha256, Digest};
     
     // 如果 key 长度大于块大小（64字节），先哈希
     let key_block = if key.len() > 64 {

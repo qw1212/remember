@@ -109,7 +109,7 @@
         <MemoirTimeline onSelect={handleEdit} />
       {/if}
     {:else if viewMode === 'search'}
-      <MemoirSearch onSelect={handleEdit} />
+      <MemoirSearch onSelect={handleEdit} {aiConfig} />
     {:else if viewMode === 'chat'}
       <AiChat 
         memoir={editingMemoir}

@@ -4,7 +4,8 @@
   import { searchMemoirs, getMemoirs, aiChat } from '../../api';
   
   export let onSelect: (memoir: Memoir) => void = () => {};
-  
+  export let aiConfig: AiConfig | undefined = undefined;
+
   let searchQuery = '';
   let searchResults: Memoir[] = [];
   let allMemoirs: Memoir[] = [];
@@ -12,14 +13,15 @@
   let error = '';
   let searchMode: 'keyword' | 'ai' = 'keyword';
   let aiExplanation = '';
-  
-  // AI 配置
-  let aiConfig: AiConfig = {
+
+  // AI 配置（外部未传入时回退到 localStorage）
+  const localAiConfig: AiConfig = {
     provider: localStorage.getItem('ai_provider') || 'ollama',
     api_url: localStorage.getItem('ai_api_url') || 'http://localhost:11434',
     api_key: localStorage.getItem('ai_api_key') || undefined,
     model: localStorage.getItem('ai_model') || 'qwen2.5:7b'
   };
+  $: effectiveAiConfig = aiConfig || localAiConfig;
   
   const categoryLabels: Record<string, string> = {
     travel: '旅行',
@@ -123,17 +125,17 @@ ${JSON.stringify(allMemoirs.map(m => ({
         { role: 'user', content: prompt }
       ];
       
-      const response = await aiChat(aiConfig, messages);
+      const response = await aiChat(effectiveAiConfig, messages);
       if (response.success && response.content) {
         const result = JSON.parse(response.content);
         searchResults = allMemoirs.filter(m => result.relevant_ids?.includes(m.id));
         aiExplanation = result.explanation || '';
       } else {
-        // 降级到关键词搜索
+        error = response.error || 'AI 搜索失败，已降级到关键词搜索';
         await keywordSearch();
       }
     } catch (e) {
-      // 降级到关键词搜索
+      error = 'AI 搜索异常，已降级到关键词搜索';
       await keywordSearch();
     }
   }
@@ -149,11 +151,22 @@ ${JSON.stringify(allMemoirs.map(m => ({
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   }
-  
+
+  function escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function highlightText(text: string, query: string): string {
-    if (!query.trim()) return text;
-    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
+    const escaped = escapeHtml(text);
+    if (!query.trim()) return escaped;
+    const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    return escaped.replace(regex, '<mark>$1</mark>');
   }
 </script>
 
@@ -212,7 +225,18 @@ ${JSON.stringify(allMemoirs.map(m => ({
       <p class="results-count">找到 {searchResults.length} 条相关回忆</p>
       
       {#each searchResults as memoir}
-        <div class="result-card" on:click={() => onSelect(memoir)}>
+        <div
+          class="result-card"
+          role="button"
+          tabindex="0"
+          on:click={() => onSelect(memoir)}
+          on:keydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSelect(memoir);
+            }
+          }}
+        >
           <div class="card-header">
             <span class="category">{categoryLabels[memoir.category] || memoir.category}</span>
             {#if memoir.emotion}

@@ -5,22 +5,24 @@
   
   export let memoir: Memoir;
   export let onSelect: (memoir: Memoir) => void = () => {};
-  
+  export let aiConfig: AiConfig | undefined = undefined;
+
   let links: MemoirLink[] = [];
   let linkedMemoirs: Array<{link: MemoirLink, memoir: Memoir | null}> = [];
   let allMemoirs: Memoir[] = [];
   let isLoading = false;
   let isAnalyzing = false;
   let error = '';
-  
-  // AI 配置
-  let aiConfig: AiConfig = {
+
+  // AI 配置（外部未传入时回退到 localStorage）
+  const localAiConfig: AiConfig = {
     provider: localStorage.getItem('ai_provider') || 'ollama',
     api_url: localStorage.getItem('ai_api_url') || 'http://localhost:11434',
     api_key: localStorage.getItem('ai_api_key') || undefined,
     model: localStorage.getItem('ai_model') || 'qwen2.5:7b'
   };
-  
+  $: effectiveAiConfig = aiConfig || localAiConfig;
+
   onMount(() => {
     loadData();
   });
@@ -57,35 +59,37 @@
   }
   
   async function handleAnalyze() {
-    if (!aiConfig) {
+    if (!effectiveAiConfig) {
       error = '请先配置 AI';
       return;
     }
-    
+
     isAnalyzing = true;
     error = '';
-    
+
     try {
       const response = await aiFindRelated(
-        aiConfig,
+        effectiveAiConfig,
         memoir.id,
         memoir.title,
         memoir.content,
         allMemoirs
       );
-      
+
       if (response.success && response.content) {
         const result = JSON.parse(response.content);
-        
+
         if (result.related && Array.isArray(result.related)) {
           // 保存新发现的关联
           for (const item of result.related) {
+            if (!item.memoir_id || !item.relation) continue;
+
             // 检查是否已存在
-            const exists = links.some(l => 
+            const exists = links.some(l =>
               (l.from_id === memoir.id && l.to_id === item.memoir_id) ||
               (l.from_id === item.memoir_id && l.to_id === memoir.id)
             );
-            
+
             if (!exists) {
               const newLink: MemoirLink = {
                 id: crypto.randomUUID(),
@@ -94,11 +98,11 @@
                 relation: item.relation,
                 created_at: new Date().toISOString()
               };
-              
+
               await saveMemoirLink(newLink);
             }
           }
-          
+
           // 重新加载
           await loadData();
         }
@@ -106,7 +110,11 @@
         error = response.error || 'AI 分析失败';
       }
     } catch (e) {
-      error = 'AI 分析失败，请检查配置';
+      if (e instanceof SyntaxError) {
+        error = 'AI 返回格式异常，请重试';
+      } else {
+        error = 'AI 分析失败，请检查配置';
+      }
     } finally {
       isAnalyzing = false;
     }
@@ -154,7 +162,11 @@
       {#each linkedMemoirs as item}
         {#if item.memoir}
           <div class="link-card">
-            <div class="link-content" on:click={() => onSelect(item.memoir!)}>
+            <button
+              type="button"
+              class="link-content"
+              on:click={() => item.memoir && onSelect(item.memoir)}
+            >
               <div class="link-relation">{item.link.relation}</div>
               <div class="linked-memoir">
                 <span class="memoir-title">{item.memoir.title}</span>
@@ -162,9 +174,10 @@
                   <span class="memoir-summary">{item.memoir.summary}</span>
                 {/if}
               </div>
-            </div>
-            <button 
-              class="delete-btn" 
+            </button>
+            <button
+              type="button"
+              class="delete-btn"
               on:click={() => handleDeleteLink(item.link.id)}
               title="删除关联"
             >
@@ -269,8 +282,13 @@
     padding: 0.75rem 1rem;
     cursor: pointer;
     transition: background 0.2s;
+    background: none;
+    border: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
   }
-  
+
   .link-content:hover {
     background: #f5f5ff;
   }
