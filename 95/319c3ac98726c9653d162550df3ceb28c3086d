@@ -1,0 +1,24 @@
+frontend/src-tauri/Cargo.toml
+  h_799a224d9b007d 40-51
+frontend/src-tauri/src/storage.rs
+  h_799a224d9b007d 69-137,204-264,648-1172
+frontend/src-tauri/src/main.rs
+  h_799a224d9b007d 77-99
+frontend/src/lib/api.ts
+  h_799a224d9b007d 361-598
+frontend/src/App.svelte
+  h_799a224d9b007d 7-11,74-86,90-101,116-123,125
+frontend/src-tauri/src/commands.rs
+  h_799a224d9b007d 8,767-994,999-1160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "95319c3ac98726c9653d162550df3ceb28c3086d",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
