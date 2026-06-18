@@ -5,7 +5,7 @@
 use tauri::State;
 use std::sync::Arc;
 use crate::crypto::{EncryptedData};
-use crate::storage::{StorageManager, Credential, Memoir, MemoirLink};
+use crate::storage::{StorageManager, Credential, Memoir, MemoirLink, Habit, HabitRecord, Knowledge, Thought, Dream};
 use crate::ai::{AiClient, AiConfig, ChatMessage, get_memoir_system_prompt, get_extract_tags_prompt, get_summary_prompt, get_emotion_prompt};
 use std::sync::Mutex;
 
@@ -760,6 +760,400 @@ pub async fn ai_analyze_emotion(
         Err(e) => Ok(AiChatResponse {
             success: false,
             content: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+// ==================== 习惯追踪相关命令 ====================
+
+/// 习惯列表响应
+#[derive(serde::Serialize)]
+pub struct HabitListResponse {
+    pub success: bool,
+    pub data: Option<Vec<Habit>>,
+    pub error: Option<String>,
+}
+
+/// 习惯打卡记录列表响应
+#[derive(serde::Serialize)]
+pub struct HabitRecordListResponse {
+    pub success: bool,
+    pub data: Option<Vec<HabitRecord>>,
+    pub error: Option<String>,
+}
+
+/// 保存习惯
+#[tauri::command]
+pub async fn save_habit(
+    state: State<'_, AppState>,
+    habit: Habit,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_habit(&habit) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("习惯已保存".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取所有习惯
+#[tauri::command]
+pub async fn get_habits(state: State<'_, AppState>) -> Result<HabitListResponse, String> {
+    match state.storage.get_habits() {
+        Ok(habits) => Ok(HabitListResponse {
+            success: true,
+            data: Some(habits),
+            error: None,
+        }),
+        Err(e) => Ok(HabitListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除习惯
+#[tauri::command]
+pub async fn delete_habit(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_habit(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("习惯已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 保存打卡记录
+#[tauri::command]
+pub async fn save_habit_record(
+    state: State<'_, AppState>,
+    record: HabitRecord,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_habit_record(&record) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("打卡成功".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取习惯的打卡记录
+#[tauri::command]
+pub async fn get_habit_records(
+    state: State<'_, AppState>,
+    habit_id: String,
+) -> Result<HabitRecordListResponse, String> {
+    match state.storage.get_habit_records(&habit_id) {
+        Ok(records) => Ok(HabitRecordListResponse {
+            success: true,
+            data: Some(records),
+            error: None,
+        }),
+        Err(e) => Ok(HabitRecordListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取指定日期范围的打卡记录
+#[tauri::command]
+pub async fn get_habit_records_by_date_range(
+    state: State<'_, AppState>,
+    habit_id: String,
+    start_date: String,
+    end_date: String,
+) -> Result<HabitRecordListResponse, String> {
+    match state.storage.get_habit_records_by_date_range(&habit_id, &start_date, &end_date) {
+        Ok(records) => Ok(HabitRecordListResponse {
+            success: true,
+            data: Some(records),
+            error: None,
+        }),
+        Err(e) => Ok(HabitRecordListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除打卡记录
+#[tauri::command]
+pub async fn delete_habit_record(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_habit_record(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("打卡记录已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+// ==================== 知识库相关命令 ====================
+
+/// 知识列表响应
+#[derive(serde::Serialize)]
+pub struct KnowledgeListResponse {
+    pub success: bool,
+    pub data: Option<Vec<Knowledge>>,
+    pub error: Option<String>,
+}
+
+/// 保存知识条目
+#[tauri::command]
+pub async fn save_knowledge(
+    state: State<'_, AppState>,
+    knowledge: Knowledge,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_knowledge(&knowledge) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("知识已保存".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取所有知识条目
+#[tauri::command]
+pub async fn get_knowledge_list(state: State<'_, AppState>) -> Result<KnowledgeListResponse, String> {
+    match state.storage.get_knowledge_list() {
+        Ok(list) => Ok(KnowledgeListResponse {
+            success: true,
+            data: Some(list),
+            error: None,
+        }),
+        Err(e) => Ok(KnowledgeListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除知识条目
+#[tauri::command]
+pub async fn delete_knowledge(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_knowledge(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("知识已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 搜索知识条目
+#[tauri::command]
+pub async fn search_knowledge(state: State<'_, AppState>, keyword: String) -> Result<KnowledgeListResponse, String> {
+    match state.storage.search_knowledge(&keyword) {
+        Ok(list) => Ok(KnowledgeListResponse {
+            success: true,
+            data: Some(list),
+            error: None,
+        }),
+        Err(e) => Ok(KnowledgeListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+// ==================== 思想日记相关命令 ====================
+
+/// 思想日记列表响应
+#[derive(serde::Serialize)]
+pub struct ThoughtListResponse {
+    pub success: bool,
+    pub data: Option<Vec<Thought>>,
+    pub error: Option<String>,
+}
+
+/// 保存思想日记
+#[tauri::command]
+pub async fn save_thought(
+    state: State<'_, AppState>,
+    thought: Thought,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_thought(&thought) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("日记已保存".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取所有思想日记
+#[tauri::command]
+pub async fn get_thoughts(state: State<'_, AppState>) -> Result<ThoughtListResponse, String> {
+    match state.storage.get_thoughts() {
+        Ok(list) => Ok(ThoughtListResponse {
+            success: true,
+            data: Some(list),
+            error: None,
+        }),
+        Err(e) => Ok(ThoughtListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除思想日记
+#[tauri::command]
+pub async fn delete_thought(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_thought(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("日记已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 搜索思想日记
+#[tauri::command]
+pub async fn search_thoughts(state: State<'_, AppState>, keyword: String) -> Result<ThoughtListResponse, String> {
+    match state.storage.search_thoughts(&keyword) {
+        Ok(list) => Ok(ThoughtListResponse {
+            success: true,
+            data: Some(list),
+            error: None,
+        }),
+        Err(e) => Ok(ThoughtListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+// ==================== 梦想清单相关命令 ====================
+
+/// 梦想列表响应
+#[derive(serde::Serialize)]
+pub struct DreamListResponse {
+    pub success: bool,
+    pub data: Option<Vec<Dream>>,
+    pub error: Option<String>,
+}
+
+/// 保存梦想
+#[tauri::command]
+pub async fn save_dream(
+    state: State<'_, AppState>,
+    dream: Dream,
+) -> Result<ApiResponse, String> {
+    match state.storage.save_dream(&dream) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("梦想已保存".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 获取所有梦想
+#[tauri::command]
+pub async fn get_dreams(state: State<'_, AppState>) -> Result<DreamListResponse, String> {
+    match state.storage.get_dreams() {
+        Ok(list) => Ok(DreamListResponse {
+            success: true,
+            data: Some(list),
+            error: None,
+        }),
+        Err(e) => Ok(DreamListResponse {
+            success: false,
+            data: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 删除梦想
+#[tauri::command]
+pub async fn delete_dream(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
+    match state.storage.delete_dream(&id) {
+        Ok(_) => Ok(ApiResponse {
+            success: true,
+            message: Some("梦想已删除".to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(ApiResponse {
+            success: false,
+            message: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
+/// 搜索梦想
+#[tauri::command]
+pub async fn search_dreams(state: State<'_, AppState>, keyword: String) -> Result<DreamListResponse, String> {
+    match state.storage.search_dreams(&keyword) {
+        Ok(list) => Ok(DreamListResponse {
+            success: true,
+            data: Some(list),
+            error: None,
+        }),
+        Err(e) => Ok(DreamListResponse {
+            success: false,
+            data: None,
             error: Some(e.to_string()),
         }),
     }

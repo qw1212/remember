@@ -74,6 +74,29 @@ fn main() {
             commands::ai_extract_tags,
             commands::ai_generate_summary,
             commands::ai_analyze_emotion,
+            // 习惯追踪命令
+            commands::save_habit,
+            commands::get_habits,
+            commands::delete_habit,
+            commands::save_habit_record,
+            commands::get_habit_records,
+            commands::get_habit_records_by_date_range,
+            commands::delete_habit_record,
+            // 知识库命令
+            commands::save_knowledge,
+            commands::get_knowledge_list,
+            commands::delete_knowledge,
+            commands::search_knowledge,
+            // 思想日记命令
+            commands::save_thought,
+            commands::get_thoughts,
+            commands::delete_thought,
+            commands::search_thoughts,
+            // 梦想清单命令
+            commands::save_dream,
+            commands::get_dreams,
+            commands::delete_dream,
+            commands::search_dreams,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

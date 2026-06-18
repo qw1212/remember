@@ -1,0 +1,15 @@
+[build]
+# 开发模式优化
+target-dir = "target"
+
+[profile.dev]
+# 开发模式优化级别
+opt-level = 0
+# 启用调试信息
+debug = true
+# 增量编译
+incremental = true
+
+[profile.dev.package."*"]
+# 依赖包优化级别
+opt-level = 2

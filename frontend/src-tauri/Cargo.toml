@@ -37,3 +37,15 @@ sha2 = "0.10"
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"] }
 # 流式响应处理
 futures-util = "0.3"
+
+[profile.release]
+# 优化级别
+opt-level = "z"  # 最小化大小
+# 链接时优化
+lto = true
+# 代码生成单元
+codegen-units = 1
+# 剥离调试信息
+strip = true
+# panic 策略
+panic = "abort"

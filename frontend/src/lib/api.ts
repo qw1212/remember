@@ -358,3 +358,241 @@ export async function aiGenerateSummary(config: AiConfig, content: string): Prom
 export async function aiAnalyzeEmotion(config: AiConfig, content: string): Promise<AiChatResponse> {
   return await invoke<AiChatResponse>('ai_analyze_emotion', { config, content });
 }
+
+// ==================== 习惯追踪相关 API ====================
+
+export interface Habit {
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  color: string;
+  frequency: string;       // 'daily' | 'weekly'
+  target_days: number[];   // [0-6], 0=周日
+  reminder_time?: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+export interface HabitRecord {
+  id: string;
+  habit_id: string;
+  date: string;            // YYYY-MM-DD
+  completed: boolean;
+  note?: string;
+  created_at: string;
+}
+
+export interface HabitListResponse {
+  success: boolean;
+  data?: Habit[];
+  error?: string;
+}
+
+export interface HabitRecordListResponse {
+  success: boolean;
+  data?: HabitRecord[];
+  error?: string;
+}
+
+/**
+ * 保存习惯
+ */
+export async function saveHabit(habit: Habit): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_habit', { habit });
+}
+
+/**
+ * 获取所有习惯
+ */
+export async function getHabits(): Promise<HabitListResponse> {
+  return await invoke<HabitListResponse>('get_habits');
+}
+
+/**
+ * 删除习惯
+ */
+export async function deleteHabit(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_habit', { id });
+}
+
+/**
+ * 保存打卡记录
+ */
+export async function saveHabitRecord(record: HabitRecord): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_habit_record', { record });
+}
+
+/**
+ * 获取习惯的打卡记录
+ */
+export async function getHabitRecords(habitId: string): Promise<HabitRecordListResponse> {
+  return await invoke<HabitRecordListResponse>('get_habit_records', { habitId });
+}
+
+/**
+ * 获取指定日期范围的打卡记录
+ */
+export async function getHabitRecordsByDateRange(
+  habitId: string,
+  startDate: string,
+  endDate: string
+): Promise<HabitRecordListResponse> {
+  return await invoke<HabitRecordListResponse>('get_habit_records_by_date_range', {
+    habitId,
+    startDate,
+    endDate,
+  });
+}
+
+/**
+ * 删除打卡记录
+ */
+export async function deleteHabitRecord(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_habit_record', { id });
+}
+
+// ==================== 知识库相关 API ====================
+
+export interface Knowledge {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  source?: string;
+  is_important: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnowledgeListResponse {
+  success: boolean;
+  data?: Knowledge[];
+  error?: string;
+}
+
+/**
+ * 保存知识条目
+ */
+export async function saveKnowledge(knowledge: Knowledge): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_knowledge', { knowledge });
+}
+
+/**
+ * 获取所有知识条目
+ */
+export async function getKnowledgeList(): Promise<KnowledgeListResponse> {
+  return await invoke<KnowledgeListResponse>('get_knowledge_list');
+}
+
+/**
+ * 删除知识条目
+ */
+export async function deleteKnowledge(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_knowledge', { id });
+}
+
+/**
+ * 搜索知识条目
+ */
+export async function searchKnowledge(keyword: string): Promise<KnowledgeListResponse> {
+  return await invoke<KnowledgeListResponse>('search_knowledge', { keyword });
+}
+
+// ==================== 思想日记相关 API ====================
+
+export interface Thought {
+  id: string;
+  content: string;
+  mood?: string;      // 'happy' | 'calm' | 'sad' | 'anxious' | 'angry'
+  theme?: string;
+  tags: string[];
+  is_private: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ThoughtListResponse {
+  success: boolean;
+  data?: Thought[];
+  error?: string;
+}
+
+/**
+ * 保存思想日记
+ */
+export async function saveThought(thought: Thought): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_thought', { thought });
+}
+
+/**
+ * 获取所有思想日记
+ */
+export async function getThoughts(): Promise<ThoughtListResponse> {
+  return await invoke<ThoughtListResponse>('get_thoughts');
+}
+
+/**
+ * 删除思想日记
+ */
+export async function deleteThought(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_thought', { id });
+}
+
+/**
+ * 搜索思想日记
+ */
+export async function searchThoughts(keyword: string): Promise<ThoughtListResponse> {
+  return await invoke<ThoughtListResponse>('search_thoughts', { keyword });
+}
+
+// ==================== 梦想清单相关 API ====================
+
+export interface Dream {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;        // 'travel' | 'career' | 'health' | 'learning' | 'personal' | 'other'
+  target_date?: string;
+  progress: number;        // 0-100
+  status: string;          // 'pending' | 'in_progress' | 'completed' | 'abandoned'
+  steps: string[];
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DreamListResponse {
+  success: boolean;
+  data?: Dream[];
+  error?: string;
+}
+
+/**
+ * 保存梦想
+ */
+export async function saveDream(dream: Dream): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('save_dream', { dream });
+}
+
+/**
+ * 获取所有梦想
+ */
+export async function getDreams(): Promise<DreamListResponse> {
+  return await invoke<DreamListResponse>('get_dreams');
+}
+
+/**
+ * 删除梦想
+ */
+export async function deleteDream(id: string): Promise<ApiResponse> {
+  return await invoke<ApiResponse>('delete_dream', { id });
+}
+
+/**
+ * 搜索梦想
+ */
+export async function searchDreams(keyword: string): Promise<DreamListResponse> {
+  return await invoke<DreamListResponse>('search_dreams', { keyword });
+}

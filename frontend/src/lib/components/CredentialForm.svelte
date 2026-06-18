@@ -15,13 +15,42 @@
   let isLoading = false;
   let error = '';
   let showPassword = false;
+  let showGenerator = false;
+  
+  // 密码生成器选项
+  let genLength = 16;
+  let genUppercase = true;
+  let genLowercase = true;
+  let genNumbers = true;
+  let genSymbols = true;
   
   const isEditing = !!credential;
+  
+  // 计算密码强度
+  $: passwordStrength = calculatePasswordStrength(password);
+  
+  function calculatePasswordStrength(pwd: string): { score: number; label: string; color: string } {
+    if (!pwd) return { score: 0, label: '无', color: '#ccc' };
+    
+    let score = 0;
+    if (pwd.length >= 8) score += 1;
+    if (pwd.length >= 12) score += 1;
+    if (pwd.length >= 16) score += 1;
+    if (/[a-z]/.test(pwd)) score += 1;
+    if (/[A-Z]/.test(pwd)) score += 1;
+    if (/[0-9]/.test(pwd)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(pwd)) score += 1;
+    
+    if (score <= 2) return { score: score / 7, label: '弱', color: '#e74c3c' };
+    if (score <= 4) return { score: score / 7, label: '中', color: '#f59e0b' };
+    if (score <= 5) return { score: score / 7, label: '强', color: '#10b981' };
+    return { score: 1, label: '非常强', color: '#059669' };
+  }
   
   // 生成密码
   async function handleGeneratePassword() {
     try {
-      password = await generatePassword(16, true, true, true, true);
+      password = await generatePassword(genLength, genUppercase, genLowercase, genNumbers, genSymbols);
     } catch (e) {
       error = `生成密码失败: ${e}`;
     }
@@ -129,12 +158,37 @@
           <button
             type="button"
             class="generate-btn"
-            on:click={handleGeneratePassword}
+            on:click={() => showGenerator = !showGenerator}
             disabled={isLoading}
           >
             生成
           </button>
         </div>
+        
+        {#if password}
+          <div class="strength-bar">
+            <div class="strength-fill" style="width: {passwordStrength.score * 100}%; background: {passwordStrength.color}"></div>
+          </div>
+          <span class="strength-label" style="color: {passwordStrength.color}">强度: {passwordStrength.label}</span>
+        {/if}
+        
+        {#if showGenerator}
+          <div class="generator-panel">
+            <div class="gen-option">
+              <label>长度: {genLength}</label>
+              <input type="range" min="8" max="64" bind:value={genLength} />
+            </div>
+            <div class="gen-checkboxes">
+              <label><input type="checkbox" bind:checked={genUppercase} /> 大写字母</label>
+              <label><input type="checkbox" bind:checked={genLowercase} /> 小写字母</label>
+              <label><input type="checkbox" bind:checked={genNumbers} /> 数字</label>
+              <label><input type="checkbox" bind:checked={genSymbols} /> 符号</label>
+            </div>
+            <button type="button" class="gen-execute-btn" on:click={handleGeneratePassword}>
+              生成密码
+            </button>
+          </div>
+        {/if}
       </div>
       
       <div class="form-group">
@@ -352,5 +406,88 @@
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;
+  }
+  
+  .strength-bar {
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s, background 0.3s;
+  }
+  
+  .strength-label {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: inline-block;
+  }
+  
+  .generator-panel {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 0.75rem;
+  }
+  
+  .gen-option {
+    margin-bottom: 0.75rem;
+  }
+  
+  .gen-option label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  
+  .gen-option input[type="range"] {
+    width: 100%;
+    padding: 0;
+    border: none;
+  }
+  
+  .gen-checkboxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .gen-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    font-weight: normal;
+    margin-bottom: 0;
+  }
+  
+  .gen-checkboxes input {
+    width: auto;
+    padding: 0;
+  }
+  
+  .gen-execute-btn {
+    width: 100%;
+    padding: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .gen-execute-btn:hover {
+    opacity: 0.9;
   }
 </style>

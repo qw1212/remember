@@ -66,6 +66,75 @@ pub struct MemoirLink {
     pub created_at: String,
 }
 
+/// 习惯数据结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Habit {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub icon: String,
+    pub color: String,
+    pub frequency: String,       // daily, weekly
+    pub target_days: Vec<i32>,   // 目标日期 [0-6]，0=周日
+    pub reminder_time: Option<String>,
+    pub created_at: String,
+    pub is_active: bool,
+}
+
+/// 习惯打卡记录数据结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HabitRecord {
+    pub id: String,
+    pub habit_id: String,
+    pub date: String,            // YYYY-MM-DD
+    pub completed: bool,
+    pub note: Option<String>,
+    pub created_at: String,
+}
+
+/// 知识条目数据结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Knowledge {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub category: String,
+    pub tags: Vec<String>,
+    pub source: Option<String>,  // 来源
+    pub is_important: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// 思想日记数据结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Thought {
+    pub id: String,
+    pub content: String,
+    pub mood: Option<String>,      // 心情：happy, calm, sad, anxious, angry
+    pub theme: Option<String>,     // 主题
+    pub tags: Vec<String>,
+    pub is_private: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// 梦想数据结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Dream {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub category: String,          // travel, career, health, learning, personal, other
+    pub target_date: Option<String>,  // 目标日期
+    pub progress: i32,             // 进度 0-100
+    pub status: String,            // pending, in_progress, completed, abandoned
+    pub steps: Vec<String>,        // 分解步骤
+    pub tags: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 /// 存储管理器
 pub struct StorageManager {
     db: Mutex<Option<Connection>>,
@@ -132,6 +201,67 @@ impl StorageManager {
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (from_id) REFERENCES memoirs(id) ON DELETE CASCADE,
                 FOREIGN KEY (to_id) REFERENCES memoirs(id) ON DELETE CASCADE
+            );
+            
+            CREATE TABLE IF NOT EXISTS habits (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                icon TEXT DEFAULT '✅',
+                color TEXT DEFAULT '#667eea',
+                frequency TEXT DEFAULT 'daily',
+                target_days TEXT DEFAULT '[0,1,2,3,4,5,6]',
+                reminder_time TEXT,
+                created_at TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1
+            );
+            
+            CREATE TABLE IF NOT EXISTS habit_records (
+                id TEXT PRIMARY KEY,
+                habit_id TEXT NOT NULL,
+                date TEXT NOT NULL,
+                completed INTEGER DEFAULT 1,
+                note TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
+                UNIQUE(habit_id, date)
+            );
+            
+            CREATE TABLE IF NOT EXISTS knowledge (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                category TEXT DEFAULT 'general',
+                tags TEXT DEFAULT '[]',
+                source TEXT,
+                is_important INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            
+            CREATE TABLE IF NOT EXISTS thoughts (
+                id TEXT PRIMARY KEY,
+                content TEXT NOT NULL,
+                mood TEXT,
+                theme TEXT,
+                tags TEXT DEFAULT '[]',
+                is_private INTEGER DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            
+            CREATE TABLE IF NOT EXISTS dreams (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                category TEXT DEFAULT 'personal',
+                target_date TEXT,
+                progress INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                steps TEXT DEFAULT '[]',
+                tags TEXT DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             );"
         )?;
         
@@ -514,5 +644,530 @@ impl StorageManager {
         conn.execute("DELETE FROM memoir_links WHERE id = ?1", params![id])?;
         
         Ok(())
+    }
+
+    // ==================== 习惯追踪相关方法 ====================
+
+    /// 保存习惯
+    pub fn save_habit(&self, habit: &Habit) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let target_days_json = serde_json::to_string(&habit.target_days)?;
+        
+        conn.execute(
+            "INSERT OR REPLACE INTO habits (id, name, description, icon, color, frequency, target_days, reminder_time, created_at, is_active)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                habit.id,
+                habit.name,
+                habit.description,
+                habit.icon,
+                habit.color,
+                habit.frequency,
+                target_days_json,
+                habit.reminder_time,
+                habit.created_at,
+                habit.is_active as i32,
+            ],
+        )?;
+        
+        Ok(())
+    }
+
+    /// 获取所有习惯
+    pub fn get_habits(&self) -> Result<Vec<Habit>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, name, description, icon, color, frequency, target_days, reminder_time, created_at, is_active FROM habits ORDER BY created_at DESC"
+        )?;
+        
+        let habits = stmt.query_map([], |row| {
+            let target_days_json: String = row.get(6)?;
+            let target_days: Vec<i32> = serde_json::from_str(&target_days_json).unwrap_or_default();
+            
+            Ok(Habit {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                icon: row.get(3)?,
+                color: row.get(4)?,
+                frequency: row.get(5)?,
+                target_days,
+                reminder_time: row.get(7)?,
+                created_at: row.get(8)?,
+                is_active: row.get::<_, i32>(9)? != 0,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(habits)
+    }
+
+    /// 根据ID获取习惯
+    pub fn get_habit_by_id(&self, id: &str) -> Result<Option<Habit>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, name, description, icon, color, frequency, target_days, reminder_time, created_at, is_active FROM habits WHERE id = ?1"
+        )?;
+        
+        let mut rows = stmt.query_map(params![id], |row| {
+            let target_days_json: String = row.get(6)?;
+            let target_days: Vec<i32> = serde_json::from_str(&target_days_json).unwrap_or_default();
+            
+            Ok(Habit {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                icon: row.get(3)?,
+                color: row.get(4)?,
+                frequency: row.get(5)?,
+                target_days,
+                reminder_time: row.get(7)?,
+                created_at: row.get(8)?,
+                is_active: row.get::<_, i32>(9)? != 0,
+            })
+        })?;
+        
+        match rows.next() {
+            Some(row) => Ok(Some(row?)),
+            None => Ok(None),
+        }
+    }
+
+    /// 删除习惯
+    pub fn delete_habit(&self, id: &str) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        // 先删除打卡记录
+        conn.execute("DELETE FROM habit_records WHERE habit_id = ?1", params![id])?;
+        // 再删除习惯
+        conn.execute("DELETE FROM habits WHERE id = ?1", params![id])?;
+        
+        Ok(())
+    }
+
+    /// 保存打卡记录
+    pub fn save_habit_record(&self, record: &HabitRecord) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        conn.execute(
+            "INSERT OR REPLACE INTO habit_records (id, habit_id, date, completed, note, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                record.id,
+                record.habit_id,
+                record.date,
+                record.completed as i32,
+                record.note,
+                record.created_at,
+            ],
+        )?;
+        
+        Ok(())
+    }
+
+    /// 获取习惯的打卡记录
+    pub fn get_habit_records(&self, habit_id: &str) -> Result<Vec<HabitRecord>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, habit_id, date, completed, note, created_at FROM habit_records WHERE habit_id = ?1 ORDER BY date DESC"
+        )?;
+        
+        let records = stmt.query_map(params![habit_id], |row| {
+            Ok(HabitRecord {
+                id: row.get(0)?,
+                habit_id: row.get(1)?,
+                date: row.get(2)?,
+                completed: row.get::<_, i32>(3)? != 0,
+                note: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(records)
+    }
+
+    /// 获取指定日期范围的打卡记录
+    pub fn get_habit_records_by_date_range(&self, habit_id: &str, start_date: &str, end_date: &str) -> Result<Vec<HabitRecord>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, habit_id, date, completed, note, created_at FROM habit_records WHERE habit_id = ?1 AND date >= ?2 AND date <= ?3 ORDER BY date ASC"
+        )?;
+        
+        let records = stmt.query_map(params![habit_id, start_date, end_date], |row| {
+            Ok(HabitRecord {
+                id: row.get(0)?,
+                habit_id: row.get(1)?,
+                date: row.get(2)?,
+                completed: row.get::<_, i32>(3)? != 0,
+                note: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(records)
+    }
+
+    /// 删除打卡记录
+    pub fn delete_habit_record(&self, id: &str) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        conn.execute("DELETE FROM habit_records WHERE id = ?1", params![id])?;
+        
+        Ok(())
+    }
+
+    // ==================== 知识库相关方法 ====================
+
+    /// 保存知识条目
+    pub fn save_knowledge(&self, knowledge: &Knowledge) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let tags_json = serde_json::to_string(&knowledge.tags)?;
+        
+        conn.execute(
+            "INSERT OR REPLACE INTO knowledge (id, title, content, category, tags, source, is_important, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                knowledge.id,
+                knowledge.title,
+                knowledge.content,
+                knowledge.category,
+                tags_json,
+                knowledge.source,
+                knowledge.is_important as i32,
+                knowledge.created_at,
+                knowledge.updated_at,
+            ],
+        )?;
+        
+        Ok(())
+    }
+
+    /// 获取所有知识条目
+    pub fn get_knowledge_list(&self) -> Result<Vec<Knowledge>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, title, content, category, tags, source, is_important, created_at, updated_at FROM knowledge ORDER BY updated_at DESC"
+        )?;
+        
+        let items = stmt.query_map([], |row| {
+            let tags_json: String = row.get(4)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Knowledge {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                category: row.get(3)?,
+                tags,
+                source: row.get(5)?,
+                is_important: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(items)
+    }
+
+    /// 根据ID获取知识条目
+    pub fn get_knowledge_by_id(&self, id: &str) -> Result<Option<Knowledge>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, title, content, category, tags, source, is_important, created_at, updated_at FROM knowledge WHERE id = ?1"
+        )?;
+        
+        let mut rows = stmt.query_map(params![id], |row| {
+            let tags_json: String = row.get(4)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Knowledge {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                category: row.get(3)?,
+                tags,
+                source: row.get(5)?,
+                is_important: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
+            })
+        })?;
+        
+        match rows.next() {
+            Some(row) => Ok(Some(row?)),
+            None => Ok(None),
+        }
+    }
+
+    /// 删除知识条目
+    pub fn delete_knowledge(&self, id: &str) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        conn.execute("DELETE FROM knowledge WHERE id = ?1", params![id])?;
+        
+        Ok(())
+    }
+
+    /// 搜索知识条目
+    pub fn search_knowledge(&self, keyword: &str) -> Result<Vec<Knowledge>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let search_pattern = format!("%{}%", keyword);
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, title, content, category, tags, source, is_important, created_at, updated_at 
+             FROM knowledge 
+             WHERE title LIKE ?1 OR content LIKE ?1 OR tags LIKE ?1 OR source LIKE ?1
+             ORDER BY updated_at DESC"
+        )?;
+        
+        let items = stmt.query_map(params![search_pattern], |row| {
+            let tags_json: String = row.get(4)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Knowledge {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                category: row.get(3)?,
+                tags,
+                source: row.get(5)?,
+                is_important: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(items)
+    }
+
+    // ==================== 思想日记相关方法 ====================
+
+    /// 保存思想日记
+    pub fn save_thought(&self, thought: &Thought) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let tags_json = serde_json::to_string(&thought.tags)?;
+        
+        conn.execute(
+            "INSERT OR REPLACE INTO thoughts (id, content, mood, theme, tags, is_private, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                thought.id,
+                thought.content,
+                thought.mood,
+                thought.theme,
+                tags_json,
+                thought.is_private as i32,
+                thought.created_at,
+                thought.updated_at,
+            ],
+        )?;
+        
+        Ok(())
+    }
+
+    /// 获取所有思想日记
+    pub fn get_thoughts(&self) -> Result<Vec<Thought>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, content, mood, theme, tags, is_private, created_at, updated_at FROM thoughts ORDER BY created_at DESC"
+        )?;
+        
+        let items = stmt.query_map([], |row| {
+            let tags_json: String = row.get(4)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Thought {
+                id: row.get(0)?,
+                content: row.get(1)?,
+                mood: row.get(2)?,
+                theme: row.get(3)?,
+                tags,
+                is_private: row.get::<_, i32>(5)? != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(items)
+    }
+
+    /// 删除思想日记
+    pub fn delete_thought(&self, id: &str) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        conn.execute("DELETE FROM thoughts WHERE id = ?1", params![id])?;
+        
+        Ok(())
+    }
+
+    /// 搜索思想日记
+    pub fn search_thoughts(&self, keyword: &str) -> Result<Vec<Thought>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let search_pattern = format!("%{}%", keyword);
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, content, mood, theme, tags, is_private, created_at, updated_at 
+             FROM thoughts 
+             WHERE content LIKE ?1 OR theme LIKE ?1 OR tags LIKE ?1
+             ORDER BY created_at DESC"
+        )?;
+        
+        let items = stmt.query_map(params![search_pattern], |row| {
+            let tags_json: String = row.get(4)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Thought {
+                id: row.get(0)?,
+                content: row.get(1)?,
+                mood: row.get(2)?,
+                theme: row.get(3)?,
+                tags,
+                is_private: row.get::<_, i32>(5)? != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(items)
+    }
+
+    // ==================== 梦想清单相关方法 ====================
+
+    /// 保存梦想
+    pub fn save_dream(&self, dream: &Dream) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let steps_json = serde_json::to_string(&dream.steps)?;
+        let tags_json = serde_json::to_string(&dream.tags)?;
+        
+        conn.execute(
+            "INSERT OR REPLACE INTO dreams (id, title, description, category, target_date, progress, status, steps, tags, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                dream.id,
+                dream.title,
+                dream.description,
+                dream.category,
+                dream.target_date,
+                dream.progress,
+                dream.status,
+                steps_json,
+                tags_json,
+                dream.created_at,
+                dream.updated_at,
+            ],
+        )?;
+        
+        Ok(())
+    }
+
+    /// 获取所有梦想
+    pub fn get_dreams(&self) -> Result<Vec<Dream>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, title, description, category, target_date, progress, status, steps, tags, created_at, updated_at FROM dreams ORDER BY created_at DESC"
+        )?;
+        
+        let items = stmt.query_map([], |row| {
+            let steps_json: String = row.get(7)?;
+            let steps: Vec<String> = serde_json::from_str(&steps_json).unwrap_or_default();
+            let tags_json: String = row.get(8)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Dream {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                description: row.get(2)?,
+                category: row.get(3)?,
+                target_date: row.get(4)?,
+                progress: row.get(5)?,
+                status: row.get(6)?,
+                steps,
+                tags,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(items)
+    }
+
+    /// 删除梦想
+    pub fn delete_dream(&self, id: &str) -> Result<(), StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        conn.execute("DELETE FROM dreams WHERE id = ?1", params![id])?;
+        
+        Ok(())
+    }
+
+    /// 搜索梦想
+    pub fn search_dreams(&self, keyword: &str) -> Result<Vec<Dream>, StorageError> {
+        let db = self.db.lock().map_err(|e| StorageError::KeychainError(e.to_string()))?;
+        let conn = db.as_ref().ok_or(StorageError::KeychainError("数据库未初始化".to_string()))?;
+        
+        let search_pattern = format!("%{}%", keyword);
+        
+        let mut stmt = conn.prepare(
+            "SELECT id, title, description, category, target_date, progress, status, steps, tags, created_at, updated_at 
+             FROM dreams 
+             WHERE title LIKE ?1 OR description LIKE ?1 OR tags LIKE ?1
+             ORDER BY created_at DESC"
+        )?;
+        
+        let items = stmt.query_map(params![search_pattern], |row| {
+            let steps_json: String = row.get(7)?;
+            let steps: Vec<String> = serde_json::from_str(&steps_json).unwrap_or_default();
+            let tags_json: String = row.get(8)?;
+            let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
+            
+            Ok(Dream {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                description: row.get(2)?,
+                category: row.get(3)?,
+                target_date: row.get(4)?,
+                progress: row.get(5)?,
+                status: row.get(6)?,
+                steps,
+                tags,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(items)
     }
 }

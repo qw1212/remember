@@ -4,6 +4,11 @@
   import CredentialList from './lib/components/CredentialList.svelte';
   import CredentialForm from './lib/components/CredentialForm.svelte';
   import MemoirPanel from './lib/components/memoir/MemoirPanel.svelte';
+  import HabitTracker from './lib/components/HabitTracker.svelte';
+  import KnowledgeBase from './lib/components/KnowledgeBase.svelte';
+  import ThoughtDiary from './lib/components/ThoughtDiary.svelte';
+  import DreamList from './lib/components/DreamList.svelte';
+  import Settings from './lib/components/Settings.svelte';
   import type { Credential } from './lib/api';
   
   let isLoggedIn = false;
@@ -68,6 +73,34 @@
         </button>
         <button 
           class="nav-btn"
+          class:active={activeTab === 'habits'}
+          on:click={() => activeTab = 'habits'}
+        >
+          🎯 习惯追踪
+        </button>
+        <button 
+          class="nav-btn"
+          class:active={activeTab === 'knowledge'}
+          on:click={() => activeTab = 'knowledge'}
+        >
+          📚 知识库
+        </button>
+        <button 
+          class="nav-btn"
+          class:active={activeTab === 'thoughts'}
+          on:click={() => activeTab = 'thoughts'}
+        >
+          💭 思想日记
+        </button>
+        <button 
+          class="nav-btn"
+          class:active={activeTab === 'dreams'}
+          on:click={() => activeTab = 'dreams'}
+        >
+          🌈 梦想清单
+        </button>
+        <button 
+          class="nav-btn"
           class:active={activeTab === 'settings'}
           on:click={() => activeTab = 'settings'}
         >
@@ -80,11 +113,16 @@
           <CredentialList />
         {:else if activeTab === 'memoir'}
           <MemoirPanel />
+        {:else if activeTab === 'habits'}
+          <HabitTracker />
+        {:else if activeTab === 'knowledge'}
+          <KnowledgeBase />
+        {:else if activeTab === 'thoughts'}
+          <ThoughtDiary />
+        {:else if activeTab === 'dreams'}
+          <DreamList />
         {:else if activeTab === 'settings'}
-          <div class="coming-soon">
-            <h2>⚙️ 设置</h2>
-            <p>即将推出...</p>
-          </div>
+          <Settings />
         {/if}
       </main>
       
