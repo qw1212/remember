@@ -1,0 +1,18 @@
+frontend/src/lib/components/memoir/MemoirSearch.svelte
+  h_799a224d9b007d 7-8,16-18,24,128,134,138,154-163,165-169,230-238
+frontend/src/lib/components/memoir/MemoirLinks.svelte
+  h_799a224d9b007d 8-9,16-18,24-25,62,66,69,72,78,81,85-86,92,101,105,113-117,165-166,168,177,179,285-289,291
+frontend/src-tauri/src/crypto.rs
+  h_799a224d9b007d 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "e8892facfe9d1e6720a1ce004aea2d1f4a504767",
+  "prompts": {},
+  "humans": {
+    "h_799a224d9b007d": {
+      "author": "liutianming <1257812496@qq.com>"
+    }
+  }
+}
