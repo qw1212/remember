@@ -28,7 +28,14 @@ describe('formatDate - 日期格式化', () => {
     const timestamp = new Date(2024, 0, 15, 10, 30).getTime()
     const result = formatDate(timestamp)
     expect(result).toContain('2024')
-    expect(result).toContain('01')
+    expect(result).toContain('1月')
+    expect(result).toContain('15')
+  })
+
+  it('应该支持字符串日期', () => {
+    const result = formatDate('2024-01-15')
+    expect(result).toContain('2024')
+    expect(result).toContain('1月')
     expect(result).toContain('15')
   })
 })

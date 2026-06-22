@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import type { Memoir, AiConfig } from '../../api';
   import { searchMemoirs, getMemoirs, aiChat } from '../../api';
+  import { categoryLabels, emotionEmojis } from '../../memoir/constants';
+  import { truncateText, escapeHtml, highlightText } from '../../utils';
   
   export let onSelect: (memoir: Memoir) => void = () => {};
   export let aiConfig: AiConfig | undefined = undefined;
@@ -15,37 +17,17 @@
   let aiExplanation = '';
 
   // AI 配置（外部未传入时回退到 localStorage）
-  const localAiConfig: AiConfig = {
-    provider: localStorage.getItem('ai_provider') || 'ollama',
-    api_url: localStorage.getItem('ai_api_url') || 'http://localhost:11434',
-    api_key: localStorage.getItem('ai_api_key') || undefined,
-    model: localStorage.getItem('ai_model') || 'qwen2.5:7b'
-  };
+  const localAiConfig: AiConfig = (() => {
+    try {
+      const saved = localStorage.getItem('ai-config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AI config:', e);
+    }
+    return { provider: 'ollama', api_url: 'http://localhost:11434', api_key: undefined, model: 'qwen2.5:7b' };
+  })();
   $: effectiveAiConfig = aiConfig || localAiConfig;
-  
-  const categoryLabels: Record<string, string> = {
-    travel: '旅行',
-    family: '家庭',
-    work: '工作',
-    growth: '成长',
-    milestone: '里程碑',
-    daily: '日常',
-    life: '生活'
-  };
-  
-  const emotionEmojis: Record<string, string> = {
-    '开心': '😊',
-    '感动': '🥹',
-    '怀念': '💭',
-    '成长': '🌱',
-    '感恩': '🙏',
-    '遗憾': '😔',
-    '温暖': '🥰',
-    '激动': '🎉',
-    '平静': '😌',
-    '忧伤': '😢'
-  };
-  
+
   onMount(() => {
     loadAllMemoirs();
   });
@@ -145,28 +127,6 @@ ${JSON.stringify(allMemoirs.map(m => ({
       e.preventDefault();
       handleSearch();
     }
-  }
-  
-  function truncateText(text: string, maxLength: number = 100): string {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  }
-
-  function escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  function highlightText(text: string, query: string): string {
-    const escaped = escapeHtml(text);
-    if (!query.trim()) return escaped;
-    const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
-    return escaped.replace(regex, '<mark>$1</mark>');
   }
 </script>
 

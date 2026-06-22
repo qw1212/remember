@@ -4,10 +4,22 @@
   export let onSave: (config: AiConfig) => void = () => {};
   export let onClose: () => void = () => {};
   
-  let provider = localStorage.getItem('ai_provider') || 'ollama';
-  let apiUrl = localStorage.getItem('ai_api_url') || 'http://localhost:11434';
-  let apiKey = localStorage.getItem('ai_api_key') || '';
-  let model = localStorage.getItem('ai_model') || 'qwen2.5:7b';
+  // 从统一的 ai-config JSON key 读取配置
+  function loadConfig(): AiConfig {
+    try {
+      const saved = localStorage.getItem('ai-config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AI config:', e);
+    }
+    return { provider: 'ollama', api_url: 'http://localhost:11434', api_key: undefined, model: 'qwen2.5:7b' };
+  }
+  
+  const savedConfig = loadConfig();
+  let provider = savedConfig.provider || 'ollama';
+  let apiUrl = savedConfig.api_url || 'http://localhost:11434';
+  let apiKey = savedConfig.api_key || '';
+  let model = savedConfig.model || 'qwen2.5:7b';
   
   const ollamaModels = [
     'qwen2.5:7b',
@@ -44,11 +56,8 @@
       model
     };
     
-    // 保存到 localStorage
-    localStorage.setItem('ai_provider', provider);
-    localStorage.setItem('ai_api_url', apiUrl);
-    localStorage.setItem('ai_api_key', apiKey);
-    localStorage.setItem('ai_model', model);
+    // 保存到统一的 ai-config JSON key
+    localStorage.setItem('ai-config', JSON.stringify(config));
     
     onSave(config);
   }
@@ -57,7 +66,7 @@
 <div class="ai-settings">
   <div class="settings-header">
     <h3>🤖 AI 配置</h3>
-    <button class="close-btn" on:click={onClose}>×</button>
+    <button class="close-btn" on:click={onClose} aria-label="关闭">×</button>
   </div>
   
   <div class="settings-content">

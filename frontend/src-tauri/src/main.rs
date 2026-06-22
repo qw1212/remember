@@ -39,7 +39,6 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             // 加密相关命令
-            commands::derive_key,
             commands::encrypt_data,
             commands::decrypt_data,
             commands::generate_password,

@@ -46,26 +46,20 @@ pub struct ChatResponse {
 #[derive(Serialize)]
 struct OllamaRequest {
     model: String,
-    messages: Vec<OllamaMessage>,
+    messages: Vec<ChatMessage>,
     stream: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-struct OllamaMessage {
-    role: String,
-    content: String,
 }
 
 /// Ollama API 响应结构
 #[derive(Deserialize)]
 struct OllamaResponse {
-    message: OllamaMessage,
+    message: ChatMessage,
 }
 
 /// Ollama 流式响应结构
 #[derive(Deserialize)]
 struct OllamaStreamResponse {
-    message: Option<OllamaMessage>,
+    message: Option<ChatMessage>,
     done: bool,
 }
 
@@ -73,14 +67,8 @@ struct OllamaStreamResponse {
 #[derive(Serialize)]
 struct OpenAiRequest {
     model: String,
-    messages: Vec<OpenAiMessage>,
+    messages: Vec<ChatMessage>,
     stream: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-struct OpenAiMessage {
-    role: String,
-    content: String,
 }
 
 /// OpenAI API 响应结构
@@ -91,7 +79,7 @@ struct OpenAiResponse {
 
 #[derive(Deserialize)]
 struct OpenAiChoice {
-    message: OpenAiMessage,
+    message: ChatMessage,
 }
 
 /// OpenAI 流式响应结构
@@ -141,17 +129,9 @@ impl AiClient {
 
     /// Ollama 聊天请求
     async fn chat_ollama(&self, messages: Vec<ChatMessage>) -> Result<String, AiError> {
-        let ollama_messages: Vec<OllamaMessage> = messages
-            .into_iter()
-            .map(|m| OllamaMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect();
-
         let request = OllamaRequest {
             model: self.config.model.clone(),
-            messages: ollama_messages,
+            messages,
             stream: false,
         };
 
@@ -184,17 +164,9 @@ impl AiClient {
             .as_ref()
             .ok_or(AiError::ConfigError("OpenAI需要API Key".to_string()))?;
 
-        let openai_messages: Vec<OpenAiMessage> = messages
-            .into_iter()
-            .map(|m| OpenAiMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect();
-
         let request = OpenAiRequest {
             model: self.config.model.clone(),
-            messages: openai_messages,
+            messages,
             stream: false,
         };
 
@@ -240,17 +212,9 @@ impl AiClient {
 
     /// Ollama 流式聊天
     async fn chat_ollama_stream(&self, messages: Vec<ChatMessage>, app: AppHandle) -> Result<String, AiError> {
-        let ollama_messages: Vec<OllamaMessage> = messages
-            .into_iter()
-            .map(|m| OllamaMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect();
-
         let request = OllamaRequest {
             model: self.config.model.clone(),
-            messages: ollama_messages,
+            messages,
             stream: true,
         };
 
@@ -268,21 +232,24 @@ impl AiClient {
 
         let mut full_content = String::new();
         let mut stream = response.bytes_stream();
+        let mut buf = String::new();
 
         while let Some(chunk) = stream.next().await {
             let chunk = chunk.map_err(|e| AiError::HttpError(e))?;
-            let text = String::from_utf8_lossy(&chunk);
+            buf.push_str(&String::from_utf8_lossy(&chunk));
             
-            // Ollama 返回的是 NDJSON，每行一个 JSON
-            for line in text.lines() {
+            // 按换行符切分，保留最后不完整的一行
+            while let Some(idx) = buf.find('\n') {
+                let line = buf[..idx].to_string();
+                buf = buf[idx + 1..].to_string();
+                
                 if line.trim().is_empty() {
                     continue;
                 }
-                if let Ok(resp) = serde_json::from_str::<OllamaStreamResponse>(line) {
+                if let Ok(resp) = serde_json::from_str::<OllamaStreamResponse>(&line) {
                     if let Some(msg) = resp.message {
                         if !msg.content.is_empty() {
                             full_content.push_str(&msg.content);
-                            // 发送事件到前端
                             let _ = app.emit("ai-stream-chunk", &msg.content);
                         }
                     }
@@ -310,17 +277,9 @@ impl AiClient {
             .as_ref()
             .ok_or(AiError::ConfigError("OpenAI需要API Key".to_string()))?;
 
-        let openai_messages: Vec<OpenAiMessage> = messages
-            .into_iter()
-            .map(|m| OpenAiMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect();
-
         let request = OpenAiRequest {
             model: self.config.model.clone(),
-            messages: openai_messages,
+            messages,
             stream: true,
         };
 
@@ -339,13 +298,18 @@ impl AiClient {
 
         let mut full_content = String::new();
         let mut stream = response.bytes_stream();
+        let mut buf = String::new();
 
         while let Some(chunk) = stream.next().await {
             let chunk = chunk.map_err(|e| AiError::HttpError(e))?;
-            let text = String::from_utf8_lossy(&chunk);
+            buf.push_str(&String::from_utf8_lossy(&chunk));
             
-            // OpenAI 返回的是 SSE 格式
-            for line in text.lines() {
+            // 按换行符切分，保留最后不完整的一行
+            while let Some(idx) = buf.find('\n') {
+                let line = buf[..idx].to_string();
+                buf = buf[idx + 1..].to_string();
+                
+                // OpenAI 返回的是 SSE 格式
                 if !line.starts_with("data: ") {
                     continue;
                 }

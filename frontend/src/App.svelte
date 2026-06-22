@@ -10,40 +10,55 @@
   import DreamList from './lib/components/DreamList.svelte';
   import Settings from './lib/components/Settings.svelte';
   import type { Credential } from './lib/api';
-  
+
+  // Tab 配置：数据驱动渲染，避免重复的 if/else 分支
+  const tabs = [
+    { id: 'credentials', label: '🔑 密码管理', component: CredentialList },
+    { id: 'memoir', label: '📖 回忆录', component: MemoirPanel },
+    { id: 'habits', label: '🎯 习惯追踪', component: HabitTracker },
+    { id: 'knowledge', label: '📚 知识库', component: KnowledgeBase },
+    { id: 'thoughts', label: '💭 思想日记', component: ThoughtDiary },
+    { id: 'dreams', label: '🌈 梦想清单', component: DreamList },
+    { id: 'settings', label: '⚙️ 设置', component: Settings },
+  ];
+
   let isLoggedIn = false;
   let showForm = false;
   let editingCredential: Credential | null = null;
   let activeTab = 'credentials';
-  
-  // 监听登录成功事件
-  if (typeof window !== 'undefined') {
-    window.addEventListener('login-success', () => {
-      isLoggedIn = true;
-    });
-    
-    // 监听添加凭证事件
-    window.addEventListener('show-add-form', () => {
-      editingCredential = null;
-      showForm = true;
-    });
-    
-    // 监听编辑凭证事件
-    window.addEventListener('edit-credential', ((e: CustomEvent) => {
+
+  // 监听事件（onMount 中注册，销毁时自动清理）
+  onMount(() => {
+    const loginHandler = () => { isLoggedIn = true; };
+    const addFormHandler = () => { editingCredential = null; showForm = true; };
+    const editHandler = ((e: CustomEvent) => {
       editingCredential = e.detail;
       showForm = true;
-    }) as EventListener);
-  }
-  
+    }) as EventListener;
+
+    window.addEventListener('login-success', loginHandler);
+    window.addEventListener('show-add-form', addFormHandler);
+    window.addEventListener('edit-credential', editHandler);
+
+    return () => {
+      window.removeEventListener('login-success', loginHandler);
+      window.removeEventListener('show-add-form', addFormHandler);
+      window.removeEventListener('edit-credential', editHandler);
+    };
+  });
+
   function handleFormClose() {
     showForm = false;
     editingCredential = null;
   }
-  
+
   function handleFormSave() {
     // 触发凭证列表刷新
     window.dispatchEvent(new Event('refresh-credentials'));
   }
+
+  // 当前激活的 tab 组件
+  $: activeTabConfig = tabs.find(t => t.id === activeTab);
 </script>
 
 <main>
@@ -57,72 +72,20 @@
       </header>
       
       <nav class="app-nav">
-        <button 
-          class="nav-btn" 
-          class:active={activeTab === 'credentials'}
-          on:click={() => activeTab = 'credentials'}
-        >
-          🔑 密码管理
-        </button>
-        <button 
-          class="nav-btn"
-          class:active={activeTab === 'memoir'}
-          on:click={() => activeTab = 'memoir'}
-        >
-          📖 回忆录
-        </button>
-        <button 
-          class="nav-btn"
-          class:active={activeTab === 'habits'}
-          on:click={() => activeTab = 'habits'}
-        >
-          🎯 习惯追踪
-        </button>
-        <button 
-          class="nav-btn"
-          class:active={activeTab === 'knowledge'}
-          on:click={() => activeTab = 'knowledge'}
-        >
-          📚 知识库
-        </button>
-        <button 
-          class="nav-btn"
-          class:active={activeTab === 'thoughts'}
-          on:click={() => activeTab = 'thoughts'}
-        >
-          💭 思想日记
-        </button>
-        <button 
-          class="nav-btn"
-          class:active={activeTab === 'dreams'}
-          on:click={() => activeTab = 'dreams'}
-        >
-          🌈 梦想清单
-        </button>
-        <button 
-          class="nav-btn"
-          class:active={activeTab === 'settings'}
-          on:click={() => activeTab = 'settings'}
-        >
-          ⚙️ 设置
-        </button>
+        {#each tabs as tab}
+          <button
+            class="nav-btn"
+            class:active={activeTab === tab.id}
+            on:click={() => activeTab = tab.id}
+          >
+            {tab.label}
+          </button>
+        {/each}
       </nav>
-      
+
       <main class="app-content">
-        {#if activeTab === 'credentials'}
-          <CredentialList />
-        {:else if activeTab === 'memoir'}
-          <MemoirPanel />
-        {:else if activeTab === 'habits'}
-          <HabitTracker />
-        {:else if activeTab === 'knowledge'}
-          <KnowledgeBase />
-        {:else if activeTab === 'thoughts'}
-          <ThoughtDiary />
-        {:else if activeTab === 'dreams'}
-          <DreamList />
-        {:else if activeTab === 'settings'}
-          <Settings />
+        {#if activeTabConfig}
+          <svelte:component this={activeTabConfig.component} />
         {/if}
       </main>
       
@@ -198,51 +161,5 @@
     padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
-  }
-  
-  .welcome-card {
-    background: white;
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-  }
-  
-  .welcome-card h2 {
-    color: #333;
-    margin-top: 0;
-  }
-  
-  .security-badges {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 1.5rem;
-    flex-wrap: wrap;
-  }
-  
-  .badge {
-    background: #e8f4f8;
-    color: #0066cc;
-    padding: 0.5rem 1rem;
-    border-radius: 2rem;
-    font-size: 0.9rem;
-  }
-  
-  .coming-soon {
-    background: white;
-    padding: 3rem;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-  }
-  
-  .coming-soon h2 {
-    color: #333;
-    margin-top: 0;
-  }
-  
-  .coming-soon p {
-    color: #666;
   }
 </style>

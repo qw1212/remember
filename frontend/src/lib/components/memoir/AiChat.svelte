@@ -7,12 +7,15 @@
   export let memoir: Memoir | null = null;
   export let onSave: () => void = () => {};
   export let onCancel: () => void = () => {};
-  export let aiConfig: AiConfig = {
-    provider: localStorage.getItem('ai_provider') || 'ollama',
-    api_url: localStorage.getItem('ai_api_url') || 'http://localhost:11434',
-    api_key: localStorage.getItem('ai_api_key') || undefined,
-    model: localStorage.getItem('ai_model') || 'qwen2.5:7b'
-  };
+  export let aiConfig: AiConfig = (() => {
+    try {
+      const saved = localStorage.getItem('ai-config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AI config:', e);
+    }
+    return { provider: 'ollama', api_url: 'http://localhost:11434', api_key: undefined, model: 'qwen2.5:7b' };
+  })();
   
   let messages: ChatMessage[] = [];
   let userInput = '';
@@ -155,7 +158,7 @@
             {message.role === 'user' ? '👤' : '🤖'}
           </div>
           <div class="message-content">
-            {@html message.content.replace(/\n/g, '<br>')}
+            {message.content}
           </div>
         </div>
       {/if}
@@ -166,7 +169,7 @@
       <div class="message assistant">
         <div class="message-avatar">🤖</div>
         <div class="message-content">
-          {@html streamingContent.replace(/\n/g, '<br>')}
+          {streamingContent}
           <span class="cursor">|</span>
         </div>
       </div>
@@ -251,6 +254,8 @@
     border-radius: 12px;
     line-height: 1.6;
     font-size: 0.95rem;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
   
   .message.assistant .message-content {

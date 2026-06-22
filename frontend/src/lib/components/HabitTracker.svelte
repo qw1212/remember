@@ -50,7 +50,7 @@
         records = records; // 触发响应式更新
       }
     } catch (e) {
-      error = '加载数据失败';
+      error = `加载数据失败: ${e instanceof Error ? e.message : String(e)}`;
     } finally {
       isLoading = false;
     }
@@ -207,7 +207,7 @@
         error = response.error || '保存失败';
       }
     } catch (e) {
-      error = '保存失败';
+      error = `保存失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -222,7 +222,7 @@
         error = response.error || '删除失败';
       }
     } catch (e) {
-      error = '删除失败';
+      error = `删除失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 </script>
@@ -256,8 +256,8 @@
               {/if}
             </div>
             <div class="habit-actions">
-              <button class="btn-icon" on:click={() => openEditForm(habit)} title="编辑">✏️</button>
-              <button class="btn-icon" on:click={() => handleDelete(habit.id)} title="删除">🗑️</button>
+              <button class="btn-icon" on:click={() => openEditForm(habit)} title="编辑" aria-label="编辑">✏️</button>
+              <button class="btn-icon" on:click={() => handleDelete(habit.id)} title="删除" aria-label="删除">🗑️</button>
             </div>
           </div>
 
@@ -294,8 +294,8 @@
 </div>
 
 {#if showForm}
-  <div class="modal-overlay" on:click={closeForm}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" role="presentation" on:click={closeForm} on:keydown={(e) => e.key === 'Escape' && closeForm()} tabindex="-1">
+    <div class="modal" role="dialog" on:click|stopPropagation on:keydown|stopPropagation>
       <h3>{editingHabit ? '编辑习惯' : '新建习惯'}</h3>
 
       <div class="form-group">

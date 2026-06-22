@@ -94,7 +94,7 @@
         class="search-input"
       />
     </div>
-    <button class="refresh-btn" on:click={loadMemoirs} disabled={isLoading}>
+    <button class="refresh-btn" on:click={loadMemoirs} disabled={isLoading} aria-label="刷新">
       🔄
     </button>
   </div>

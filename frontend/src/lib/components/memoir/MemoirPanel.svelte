@@ -12,15 +12,18 @@
   let editingMemoir: Memoir | null = null;
   
   // 检查是否已配置 AI
-  let isAiConfigured = !!localStorage.getItem('ai_provider');
+  let isAiConfigured = !!localStorage.getItem('ai-config');
   
   // AI 配置（响应式读取）
-  let aiConfig: AiConfig = {
-    provider: localStorage.getItem('ai_provider') || 'ollama',
-    api_url: localStorage.getItem('ai_api_url') || 'http://localhost:11434',
-    api_key: localStorage.getItem('ai_api_key') || undefined,
-    model: localStorage.getItem('ai_model') || 'qwen2.5:7b'
-  };
+  let aiConfig: AiConfig = (() => {
+    try {
+      const saved = localStorage.getItem('ai-config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AI config:', e);
+    }
+    return { provider: 'ollama', api_url: 'http://localhost:11434', api_key: undefined, model: 'qwen2.5:7b' };
+  })();
   
   function handleEdit(memoir: Memoir) {
     editingMemoir = memoir;
@@ -75,13 +78,13 @@
     <h2>📖 回忆录</h2>
     <div class="header-actions">
       {#if viewMode === 'list'}
-        <button class="mode-btn" on:click={toggleDisplayMode} title={listDisplayMode === 'grid' ? '切换到时间线' : '切换到卡片'}>
+        <button class="mode-btn" on:click={toggleDisplayMode} title={listDisplayMode === 'grid' ? '切换到时间线' : '切换到卡片'} aria-label={listDisplayMode === 'grid' ? '切换到时间线' : '切换到卡片'}>
           {listDisplayMode === 'grid' ? '📅' : '📋'}
         </button>
-        <button class="search-btn" on:click={handleOpenSearch} title="智能搜索">
+        <button class="search-btn" on:click={handleOpenSearch} title="智能搜索" aria-label="智能搜索">
           🔍
         </button>
-        <button class="settings-btn" on:click={handleOpenSettings} title="AI 设置">
+        <button class="settings-btn" on:click={handleOpenSettings} title="AI 设置" aria-label="AI 设置">
           ⚙️
         </button>
         <button class="new-chat-btn" on:click={handleNewChat}>

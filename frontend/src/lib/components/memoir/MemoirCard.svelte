@@ -1,38 +1,11 @@
 <script lang="ts">
   import type { Memoir } from '../../api';
-  import { formatDate } from '../../utils';
-  
+  import { formatDate, truncateText } from '../../utils';
+  import { categoryLabels, emotionEmojis } from '../../memoir/constants';
+
   export let memoir: Memoir;
   export let onEdit: (memoir: Memoir) => void = () => {};
   export let onDelete: (id: string) => void = () => {};
-  
-  const categoryLabels: Record<string, string> = {
-    travel: '旅行',
-    family: '家庭',
-    work: '工作',
-    growth: '成长',
-    milestone: '里程碑',
-    daily: '日常',
-    life: '生活'
-  };
-  
-  const emotionEmojis: Record<string, string> = {
-    '开心': '😊',
-    '感动': '🥹',
-    '怀念': '💭',
-    '成长': '🌱',
-    '感恩': '🙏',
-    '遗憾': '😔',
-    '温暖': '🥰',
-    '激动': '🎉',
-    '平静': '😌',
-    '忧伤': '😢'
-  };
-  
-  function truncateText(text: string, maxLength: number = 150): string {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  }
 </script>
 
 <div class="memoir-card">
@@ -44,10 +17,10 @@
       {/if}
     </div>
     <div class="card-actions">
-      <button class="action-btn" on:click={() => onEdit(memoir)} title="编辑">
+      <button class="action-btn" on:click={() => onEdit(memoir)} title="编辑" aria-label="编辑">
         ✏️
       </button>
-      <button class="action-btn" on:click={() => onDelete(memoir.id)} title="删除">
+      <button class="action-btn" on:click={() => onDelete(memoir.id)} title="删除" aria-label="删除">
         🗑️
       </button>
     </div>

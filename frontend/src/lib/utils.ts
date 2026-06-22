@@ -22,45 +22,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 /**
- * 下载文件
- */
-export function downloadFile(content: string, filename: string, type: string = 'application/json') {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/**
- * 读取文件内容
- */
-export function readFileAsText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsText(file);
-  });
-}
-
-/**
- * 生成数据校验和
- * 使用SHA-256生成数据的哈希值
- */
-export async function generateChecksum(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashArray = new Uint8Array(hashBuffer);
-  return Array.from(hashArray)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-/**
  * 生成唯一设备ID
  */
 export function generateDeviceId(): string {
@@ -75,14 +36,41 @@ export function generateDeviceId(): string {
 /**
  * 格式化日期
  */
-export function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('zh-CN', {
+export function formatDate(date: string | number): string {
+  const d = typeof date === 'number' ? new Date(date) : new Date(date);
+  return d.toLocaleDateString('zh-CN', {
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+    month: 'long',
+    day: 'numeric',
   });
+}
+
+/**
+ * 截断文本，超出长度时添加省略号
+ */
+export function truncateText(text: string, maxLen: number = 100): string {
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen) + '...';
+}
+
+/**
+ * HTML 转义
+ */
+export function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * 高亮关键词（返回 HTML 字符串，需配合 {@html} 使用）
+ */
+export function highlightText(text: string, keyword: string): string {
+  if (!keyword) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const escapedKeyword = escapeHtml(keyword);
+  const regex = new RegExp(escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  return escaped.replace(regex, (match) => `<mark>${match}</mark>`);
 }
 
 /**

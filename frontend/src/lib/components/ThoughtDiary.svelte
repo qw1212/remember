@@ -7,6 +7,7 @@
     deleteThought,
     searchThoughts,
   } from '../api';
+  import { formatDate } from '../utils';
 
   let items: Thought[] = [];
   let isLoading = false;
@@ -53,7 +54,7 @@
         items = response.data;
       }
     } catch (e) {
-      error = '加载数据失败';
+      error = `加载数据失败: ${e instanceof Error ? e.message : String(e)}`;
     } finally {
       isLoading = false;
     }
@@ -67,27 +68,12 @@
     return moodOptions.find(m => m.value === mood)?.label || '';
   }
 
-  function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-    });
-  }
-
   function formatTime(dateStr: string): string {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
     });
-  }
-
-  function truncateText(text: string, maxLen: number = 150): string {
-    if (text.length <= maxLen) return text;
-    return text.substring(0, maxLen) + '...';
   }
 
   function openAddForm() {
@@ -142,7 +128,7 @@
         error = response.error || '保存失败';
       }
     } catch (e) {
-      error = '保存失败';
+      error = `保存失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -157,7 +143,7 @@
         error = response.error || '删除失败';
       }
     } catch (e) {
-      error = '删除失败';
+      error = `删除失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -229,8 +215,8 @@
             </div>
           {/if}
           <div class="card-actions">
-            <button class="btn-icon" on:click={() => openEditForm(item)} title="编辑">✏️</button>
-            <button class="btn-icon" on:click={() => handleDelete(item.id)} title="删除">🗑️</button>
+            <button class="btn-icon" on:click={() => openEditForm(item)} title="编辑" aria-label="编辑">✏️</button>
+            <button class="btn-icon" on:click={() => handleDelete(item.id)} title="删除" aria-label="删除">🗑️</button>
           </div>
         </div>
       {/each}

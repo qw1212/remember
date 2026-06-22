@@ -15,12 +15,15 @@
   let error = '';
 
   // AI 配置（外部未传入时回退到 localStorage）
-  const localAiConfig: AiConfig = {
-    provider: localStorage.getItem('ai_provider') || 'ollama',
-    api_url: localStorage.getItem('ai_api_url') || 'http://localhost:11434',
-    api_key: localStorage.getItem('ai_api_key') || undefined,
-    model: localStorage.getItem('ai_model') || 'qwen2.5:7b'
-  };
+  const localAiConfig: AiConfig = (() => {
+    try {
+      const saved = localStorage.getItem('ai-config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load AI config:', e);
+    }
+    return { provider: 'ollama', api_url: 'http://localhost:11434', api_key: undefined, model: 'qwen2.5:7b' };
+  })();
   $: effectiveAiConfig = aiConfig || localAiConfig;
 
   onMount(() => {

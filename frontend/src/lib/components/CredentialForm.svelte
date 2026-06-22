@@ -108,7 +108,7 @@
   <div class="form-container">
     <div class="form-header">
       <h2>{isEditing ? '编辑凭证' : '添加凭证'}</h2>
-      <button class="close-btn" on:click={onClose}>×</button>
+      <button class="close-btn" on:click={onClose} aria-label="关闭">×</button>
     </div>
     
     {#if error}

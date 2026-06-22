@@ -7,6 +7,7 @@
     deleteKnowledge,
     searchKnowledge,
   } from '../api';
+  import { truncateText } from '../utils';
 
   let items: Knowledge[] = [];
   let isLoading = false;
@@ -52,7 +53,7 @@
         items = response.data;
       }
     } catch (e) {
-      error = '加载数据失败';
+      error = `加载数据失败: ${e instanceof Error ? e.message : String(e)}`;
     } finally {
       isLoading = false;
     }
@@ -65,11 +66,6 @@
 
   function getCategoryLabel(category: string): string {
     return categoryOptions.find(c => c.value === category)?.label || category;
-  }
-
-  function truncateText(text: string, maxLen: number = 100): string {
-    if (text.length <= maxLen) return text;
-    return text.substring(0, maxLen) + '...';
   }
 
   function openAddForm() {
@@ -131,7 +127,7 @@
         error = response.error || '保存失败';
       }
     } catch (e) {
-      error = '保存失败';
+      error = `保存失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -146,7 +142,7 @@
         error = response.error || '删除失败';
       }
     } catch (e) {
-      error = '删除失败';
+      error = `删除失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -223,8 +219,8 @@
             <p class="card-source">来源: {item.source}</p>
           {/if}
           <div class="card-actions">
-            <button class="btn-icon" on:click={() => openEditForm(item)} title="编辑">✏️</button>
-            <button class="btn-icon" on:click={() => handleDelete(item.id)} title="删除">🗑️</button>
+            <button class="btn-icon" on:click={() => openEditForm(item)} title="编辑" aria-label="编辑">✏️</button>
+            <button class="btn-icon" on:click={() => handleDelete(item.id)} title="删除" aria-label="删除">🗑️</button>
           </div>
         </div>
       {/each}

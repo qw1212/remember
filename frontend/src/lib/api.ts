@@ -48,14 +48,6 @@ export interface EncryptResponse {
 // ==================== 加密相关 API ====================
 
 /**
- * 派生密钥
- */
-export async function deriveKey(password: string, salt: string): Promise<Uint8Array> {
-  return await invoke<number[]>('derive_key', { password, salt })
-    .then(bytes => new Uint8Array(bytes));
-}
-
-/**
  * 加密数据
  */
 export async function encryptData(key: Uint8Array, data: string): Promise<EncryptResponse> {

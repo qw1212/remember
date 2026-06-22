@@ -4,24 +4,10 @@
 
 use tauri::State;
 use std::sync::Arc;
-use crate::crypto::{EncryptedData};
+use crate::crypto::{EncryptedData, to_base64, from_base64};
 use crate::storage::{StorageManager, Credential, Memoir, MemoirLink, Habit, HabitRecord, Knowledge, Thought, Dream};
 use crate::ai::{AiClient, AiConfig, ChatMessage, get_memoir_system_prompt, get_extract_tags_prompt, get_summary_prompt, get_emotion_prompt};
 use std::sync::Mutex;
-
-/// Base64编码辅助函数
-fn base64_encode(data: &[u8]) -> String {
-    use base64::Engine;
-    base64::engine::general_purpose::STANDARD.encode(data)
-}
-
-/// Base64解码辅助函数
-fn base64_decode(data: &str) -> Result<Vec<u8>, String> {
-    use base64::Engine;
-    base64::engine::general_purpose::STANDARD
-        .decode(data)
-        .map_err(|e| format!("Base64解码失败: {}", e))
-}
 
 /// 应用状态
 pub struct AppState {
@@ -70,16 +56,17 @@ pub struct ApiResponse {
     pub error: Option<String>,
 }
 
-// ==================== 加密相关命令 ====================
-
-/// 派生密钥
-#[tauri::command]
-pub fn derive_key(password: &str, salt: &str) -> Result<Vec<u8>, String> {
-    let _ = (password, salt);
-    // 简化的密钥派生（实际应使用Argon2id）
-    let key = crate::crypto::generate_random_bytes(32);
-    Ok(key)
+/// 辅助函数：创建成功响应
+fn ok_resp(msg: &str) -> Result<ApiResponse, String> {
+    Ok(ApiResponse { success: true, message: Some(msg.to_string()), error: None })
 }
+
+/// 辅助函数：创建错误响应
+fn err_resp(e: impl std::fmt::Display) -> Result<ApiResponse, String> {
+    Ok(ApiResponse { success: false, message: None, error: Some(e.to_string()) })
+}
+
+// ==================== 加密相关命令 ====================
 
 /// 加密数据
 #[tauri::command]
@@ -142,16 +129,8 @@ pub async fn save_credential(
     credential: Credential,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_credential(&credential) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("凭证已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("凭证已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -176,16 +155,8 @@ pub async fn get_credentials(state: State<'_, AppState>) -> Result<CredentialLis
 #[tauri::command]
 pub async fn delete_credential(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_credential(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("凭证已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("凭证已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -196,16 +167,8 @@ pub async fn update_credential(
     credential: Credential,
 ) -> Result<ApiResponse, String> {
     match state.storage.update_credential(&credential) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("凭证已更新".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("凭证已更新"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -224,7 +187,7 @@ pub async fn set_master_password(
     let key = crate::crypto::derive_key_from_password(&password, &salt);
     
     // 保存salt到数据库
-    if let Err(e) = state.storage.set_app_state("master_salt", &base64_encode(&salt)) {
+    if let Err(e) = state.storage.set_app_state("master_salt", &to_base64(&salt)) {
         return Ok(ApiResponse {
             success: false,
             message: None,
@@ -236,11 +199,11 @@ pub async fn set_master_password(
     match state.storage.save_key_to_keychain("master_key", &key) {
         Ok(_) => {
             // 更新内存中的密钥
-            let mut master_key = state.master_key.lock().unwrap();
+            let mut master_key = state.master_key.lock().map_err(|e| e.to_string())?;
             *master_key = Some(key);
             
             // 更新锁定状态
-            let mut is_locked = state.is_locked.lock().unwrap();
+            let mut is_locked = state.is_locked.lock().map_err(|e| e.to_string())?;
             *is_locked = false;
             
             Ok(ApiResponse {
@@ -265,7 +228,7 @@ pub async fn verify_master_password(
 ) -> Result<ApiResponse, String> {
     // 从数据库读取salt
     let salt = match state.storage.get_app_state("master_salt") {
-        Ok(Some(salt_b64)) => base64_decode(&salt_b64).unwrap_or_default(),
+        Ok(Some(salt_b64)) => from_base64(&salt_b64).unwrap_or_default(),
         _ => return Ok(ApiResponse {
             success: false,
             message: None,
@@ -282,11 +245,11 @@ pub async fn verify_master_password(
             // 比较密钥
             if key == stored_key {
                 // 更新内存中的密钥
-                let mut master_key = state.master_key.lock().unwrap();
+                let mut master_key = state.master_key.lock().map_err(|e| e.to_string())?;
                 *master_key = Some(key);
                 
                 // 更新锁定状态
-                let mut is_locked = state.is_locked.lock().unwrap();
+                let mut is_locked = state.is_locked.lock().map_err(|e| e.to_string())?;
                 *is_locked = false;
                 
                 Ok(ApiResponse {
@@ -327,10 +290,10 @@ pub async fn is_master_password_set(state: State<'_, AppState>) -> Result<bool, 
 /// 锁定应用
 #[tauri::command]
 pub async fn lock_app(state: State<'_, AppState>) -> Result<ApiResponse, String> {
-    let mut is_locked = state.is_locked.lock().unwrap();
+    let mut is_locked = state.is_locked.lock().map_err(|e| e.to_string())?;
     *is_locked = true;
     
-    let mut master_key = state.master_key.lock().unwrap();
+    let mut master_key = state.master_key.lock().map_err(|e| e.to_string())?;
     *master_key = None;
     
     Ok(ApiResponse {
@@ -343,7 +306,7 @@ pub async fn lock_app(state: State<'_, AppState>) -> Result<ApiResponse, String>
 /// 检查应用是否已锁定
 #[tauri::command]
 pub async fn is_locked(state: State<'_, AppState>) -> Result<bool, String> {
-    let is_locked = state.is_locked.lock().unwrap();
+    let is_locked = state.is_locked.lock().map_err(|e| e.to_string())?;
     Ok(*is_locked)
 }
 
@@ -392,16 +355,8 @@ pub async fn save_memoir(
     memoir: Memoir,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_memoir(&memoir) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("回忆已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("回忆已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -448,16 +403,8 @@ pub async fn get_memoir_by_id(state: State<'_, AppState>, id: String) -> Result<
 #[tauri::command]
 pub async fn delete_memoir(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_memoir(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("回忆已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("回忆已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -485,16 +432,8 @@ pub async fn save_memoir_link(
     link: MemoirLink,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_memoir_link(&link) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("关联已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("关联已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -519,16 +458,8 @@ pub async fn get_memoir_links(state: State<'_, AppState>, memoir_id: String) -> 
 #[tauri::command]
 pub async fn delete_memoir_link(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_memoir_link(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("关联已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("关联已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -790,16 +721,8 @@ pub async fn save_habit(
     habit: Habit,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_habit(&habit) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("习惯已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("习惯已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -824,16 +747,8 @@ pub async fn get_habits(state: State<'_, AppState>) -> Result<HabitListResponse,
 #[tauri::command]
 pub async fn delete_habit(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_habit(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("习惯已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("习惯已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -844,16 +759,8 @@ pub async fn save_habit_record(
     record: HabitRecord,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_habit_record(&record) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("打卡成功".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("打卡成功"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -903,16 +810,8 @@ pub async fn get_habit_records_by_date_range(
 #[tauri::command]
 pub async fn delete_habit_record(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_habit_record(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("打卡记录已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("打卡记录已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -933,16 +832,8 @@ pub async fn save_knowledge(
     knowledge: Knowledge,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_knowledge(&knowledge) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("知识已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("知识已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -967,16 +858,8 @@ pub async fn get_knowledge_list(state: State<'_, AppState>) -> Result<KnowledgeL
 #[tauri::command]
 pub async fn delete_knowledge(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_knowledge(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("知识已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("知识已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -1014,16 +897,8 @@ pub async fn save_thought(
     thought: Thought,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_thought(&thought) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("日记已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("日记已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -1048,16 +923,8 @@ pub async fn get_thoughts(state: State<'_, AppState>) -> Result<ThoughtListRespo
 #[tauri::command]
 pub async fn delete_thought(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_thought(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("日记已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("日记已删除"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -1095,16 +962,8 @@ pub async fn save_dream(
     dream: Dream,
 ) -> Result<ApiResponse, String> {
     match state.storage.save_dream(&dream) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("梦想已保存".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("梦想已保存"),
+        Err(e) => err_resp(e),
     }
 }
 
@@ -1129,16 +988,8 @@ pub async fn get_dreams(state: State<'_, AppState>) -> Result<DreamListResponse,
 #[tauri::command]
 pub async fn delete_dream(state: State<'_, AppState>, id: String) -> Result<ApiResponse, String> {
     match state.storage.delete_dream(&id) {
-        Ok(_) => Ok(ApiResponse {
-            success: true,
-            message: Some("梦想已删除".to_string()),
-            error: None,
-        }),
-        Err(e) => Ok(ApiResponse {
-            success: false,
-            message: None,
-            error: Some(e.to_string()),
-        }),
+        Ok(_) => ok_resp("梦想已删除"),
+        Err(e) => err_resp(e),
     }
 }
 

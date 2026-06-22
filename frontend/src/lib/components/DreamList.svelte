@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { Dream } from '../api';
   import { getDreams, saveDream, deleteDream, searchDreams } from '../api';
+  import { formatDate } from '../utils';
 
   let dreams: Dream[] = [];
   let isLoading = false;
@@ -57,7 +58,7 @@
         dreams = response.data;
       }
     } catch (e) {
-      error = '加载数据失败';
+      error = `加载数据失败: ${e instanceof Error ? e.message : String(e)}`;
     } finally {
       isLoading = false;
     }
@@ -83,16 +84,6 @@
 
   function getStatusColor(status: string): string {
     return statusOptions.find(s => s.value === status)?.color || '#6b7280';
-  }
-
-  function formatDate(dateStr: string | undefined): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
   }
 
   function openAddForm() {
@@ -176,7 +167,7 @@
         error = response.error || '保存失败';
       }
     } catch (e) {
-      error = '保存失败';
+      error = `保存失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -191,7 +182,7 @@
         error = response.error || '删除失败';
       }
     } catch (e) {
-      error = '删除失败';
+      error = `删除失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -214,7 +205,7 @@
         await loadData();
       }
     } catch (e) {
-      error = '更新状态失败';
+      error = `更新状态失败: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
 
@@ -338,8 +329,8 @@
           {/if}
 
           <div class="card-actions">
-            <button class="btn-icon" on:click={() => openEditForm(dream)} title="编辑">✏️</button>
-            <button class="btn-icon" on:click={() => handleDelete(dream.id)} title="删除">🗑️</button>
+            <button class="btn-icon" on:click={() => openEditForm(dream)} title="编辑" aria-label="编辑">✏️</button>
+            <button class="btn-icon" on:click={() => handleDelete(dream.id)} title="删除" aria-label="删除">🗑️</button>
           </div>
         </div>
       {/each}

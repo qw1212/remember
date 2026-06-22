@@ -118,13 +118,13 @@ pub fn derive_key_from_password(password: &str, salt: &[u8]) -> Vec<u8> {
 }
 
 /// Base64编码
-fn to_base64(data: &[u8]) -> String {
+pub fn to_base64(data: &[u8]) -> String {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.encode(data)
 }
 
 /// Base64解码
-fn from_base64(data: &str) -> Result<Vec<u8>, CryptoError> {
+pub fn from_base64(data: &str) -> Result<Vec<u8>, CryptoError> {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD
         .decode(data)
