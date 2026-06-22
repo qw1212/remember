@@ -253,6 +253,4 @@ To maintain its core principles, **remember** will never include:
 ## 📖 Documentation
 
 - [README_CN.md](./README_CN.md) – 中文文档
-- [plan.md](./plan.md) – Detailed implementation plan
 - [desktop-app.md](./docs/desktop-app.md) – Desktop app packaging guide
-- [security.md](./docs/security.md) – Security architecture documentation
